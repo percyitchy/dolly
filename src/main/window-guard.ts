@@ -4,7 +4,7 @@
 import { join } from 'node:path'
 import { app, type BrowserWindow, type MenuItemConstructorOptions, type WebContents, type WebPreferences } from 'electron'
 
-export type PreloadName = 'index' | 'recorder' | 'export'
+export type PreloadName = 'index' | 'recorder' | 'export' | 'stopbar'
 
 export function secureWebPreferences(preload: PreloadName, extra: WebPreferences = {}): WebPreferences {
   return {

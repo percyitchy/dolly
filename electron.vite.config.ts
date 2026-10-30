@@ -14,7 +14,8 @@ export default defineConfig({
         input: {
           index: resolve(__dirname, 'src/preload/index.ts'),
           recorder: resolve(__dirname, 'src/preload/recorder.ts'),
-          export: resolve(__dirname, 'src/preload/export.ts')
+          export: resolve(__dirname, 'src/preload/export.ts'),
+          stopbar: resolve(__dirname, 'src/preload/stopbar.ts')
         },
         output: { format: 'cjs', entryFileNames: '[name].cjs' }
       }
@@ -27,7 +28,8 @@ export default defineConfig({
         input: {
           index: resolve(__dirname, 'src/renderer/index.html'),
           recorder: resolve(__dirname, 'src/renderer/recorder.html'),
-          export: resolve(__dirname, 'src/renderer/export.html')
+          export: resolve(__dirname, 'src/renderer/export.html'),
+          stopbar: resolve(__dirname, 'src/renderer/stopbar.html')
         }
       }
     }

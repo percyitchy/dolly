@@ -296,11 +296,11 @@ final class Recorder: NSObject, SCStreamOutput, SCStreamDelegate, @unchecked Sen
       guard let display = content?.displays.first(where: { $0.displayID == self.displayID }) else {
         fail("That display isn't available. If the Mac is locked or the display is asleep, wake it and try again.", code: "display")
       }
-      self.begin(display)
+      self.begin(display, applications: content?.applications ?? [])
     }
   }
 
-  private func begin(_ display: SCDisplay) {
+  private func begin(_ display: SCDisplay, applications: [SCRunningApplication]) {
     var (pixelW, pixelH) = nativeSize(of: displayID)
     pixelW = evenDown(pixelW)
     pixelH = evenDown(pixelH)
@@ -349,7 +349,11 @@ final class Recorder: NSObject, SCStreamOutput, SCStreamDelegate, @unchecked Sen
     config.colorSpaceName = CGColorSpace.sRGB
     if #available(macOS 14.0, *) { config.captureResolution = .best }
 
-    let filter = SCContentFilter(display: display, excludingWindows: [])
+    // Leave Dolly's own windows out, such as the stop bar, even ones that open later. Run by hand, the parent is no app
+    let parent = getppid()
+    let dolly = applications.first { $0.processID == parent }
+    let filter = dolly.map { SCContentFilter(display: display, excludingApplications: [$0], exceptingWindows: []) }
+      ?? SCContentFilter(display: display, excludingWindows: [])
     let stream = SCStream(filter: filter, configuration: config, delegate: self)
     do {
       try stream.addStreamOutput(self, type: .screen, sampleHandlerQueue: queue)

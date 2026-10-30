@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'">
+<title>Dolly</title>
+<style>
+html, body { height: 100%; margin: 0; overflow: hidden; background: #0E1014; color: #ECEEF2; font: 500 13px/1 -apple-system, "Segoe UI", system-ui, sans-serif; user-select: none; }
+body { display: flex; align-items: center; gap: 10px; padding: 0 6px 0 14px; box-sizing: border-box; -webkit-app-region: drag; }
+.rec { width: 9px; height: 9px; border-radius: 50%; background: #FF5A3D; flex: none; }
+#time { font-variant-numeric: tabular-nums; flex: 1; }
+button { -webkit-app-region: no-drag; height: 30px; padding: 0 13px; border: 0; border-radius: 8px; background: #ECEEF2; color: #0E1014; font: inherit; font-weight: 600; cursor: default; }
+</style>
+</head>
+<body>
+<i class="rec"></i>
+<span id="time">0:00</span>
+<button id="stop" type="button">Stop</button>
+<script type="module" src="./stopbar.ts"></script>
+</body>
+</html>

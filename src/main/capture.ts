@@ -31,6 +31,7 @@ import { checkProjectDir, createProjectDir, CURSOR_FILE, PROJECT_EXT, PROJECT_FI
 import { grantRecorderMedia, revokeRecorderMedia, secureWebPreferences } from './window-guard'
 
 const SHORTCUT = 'CommandOrControl+Shift+2'
+const STOP_BAR = { width: 150, height: 42, top: 12 }
 const SCREEN_FILE = 'screen.mp4'
 const MOUSE_FILE = 'mouse.jsonl' // The macOS helper's log. It's read into cursor.jsonl and deleted
 const START_TIMEOUT_MS = 30000 // Generous, since the first launch of a helper or renderer can take seconds
@@ -622,6 +623,7 @@ let context: MainContext | null = null
 let session: Session | null = null
 let starting = false
 let tray: Tray | null = null
+let stopBar: BrowserWindow | null = null
 let trayOpenedAt: Ms | null = null
 let quitting = false
 let activeRecorder: RecorderWindow | null = null
@@ -656,12 +658,45 @@ export async function cleanUp(steps: (() => unknown)[], last: () => void): Promi
 
 function clearRecordingUi(): void {
   globalShortcut.unregister(SHORTCUT)
+  if (stopBar && !stopBar.isDestroyed()) stopBar.destroy()
+  stopBar = null
   tray?.destroy()
   tray = null
   trayOpenedAt = null
 }
 
-function showRecordingUi(): void {
+// The menu bar icon can sit hidden behind a Mac's notch, so the visible way to stop is this bar. It stays out of the
+// video: the macOS helper leaves Dolly's own windows out, and content protection does the same on Windows
+function showStopBar(display: Display): void {
+  const { x, y, width } = display.workArea
+  stopBar = new BrowserWindow({
+    x: Math.round(x + (width - STOP_BAR.width) / 2),
+    y: y + STOP_BAR.top,
+    width: STOP_BAR.width,
+    height: STOP_BAR.height,
+    frame: false,
+    resizable: false,
+    minimizable: false,
+    maximizable: false,
+    fullscreenable: false,
+    skipTaskbar: true,
+    alwaysOnTop: true,
+    focusable: false,
+    acceptFirstMouse: true,
+    show: false,
+    roundedCorners: true,
+    backgroundColor: '#0E1014',
+    webPreferences: secureWebPreferences('stopbar')
+  })
+  stopBar.setContentProtection(true)
+  stopBar.setAlwaysOnTop(true, 'screen-saver')
+  stopBar.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true, skipTransformProcessType: true })
+  stopBar.once('ready-to-show', () => stopBar?.showInactive())
+  void stopBar.loadURL(pageUrl('stopbar.html'))
+}
+
+function showRecordingUi(display: Display): void {
+  showStopBar(display)
   globalShortcut.register(SHORTCUT, () => void stopRecording())
   const menu = Menu.buildFromTemplate([
     { label: 'Stop Recording', accelerator: SHORTCUT, registerAccelerator: false, click: () => void stopRecording({ fromTray: true }) }
@@ -752,7 +787,7 @@ async function startRecording(options: RecordingOptions): Promise<void> {
       })
     }
     session = current
-    showRecordingUi()
+    showRecordingUi(display)
     helper.stopped.then(
       () => void stopRecording(),
       (error: Error) => failRecording(current, error)
@@ -910,6 +945,14 @@ export const register: Register = (ctx) => {
   })
   handleFromMain(ctx, 'capture:stop', () => stopRecording())
 
+  const fromStopBar = (sender: WebContents) => !!stopBar && !stopBar.isDestroyed() && sender === stopBar.webContents
+  // From the moment the cursor reaches Stop, the rest is the end of the video being left behind
+  ipcMain.on(CHANNELS.stopBarHover, (event) => {
+    if (fromStopBar(event.sender)) trayOpenedAt = nowMs()
+  })
+  ipcMain.on(CHANNELS.stopBarStop, (event) => {
+    if (fromStopBar(event.sender)) void stopRecording({ fromTray: true })
+  })
   ipcMain.on(CHANNELS.recorderReport, (event, report: RecorderEvent) => {
     if (activeRecorder?.isSender(event.sender)) activeRecorder.handleReport(report)
   })

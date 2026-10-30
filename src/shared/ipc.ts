@@ -163,7 +163,9 @@ export const CHANNELS = {
   exportPort: 'export:port', // Main to the hidden export window, carries one MessagePort
   recorderCommand: 'recorder:command',
   recorderReport: 'recorder:report',
-  recorderChunk: 'recorder:chunk'
+  recorderChunk: 'recorder:chunk',
+  stopBarHover: 'stopbar:hover',
+  stopBarStop: 'stopbar:stop'
 } as const
 
 // Preload forwards that port to the page under this window message
