@@ -70,7 +70,7 @@ describe('release.yml', () => {
     expect(windowsJob).toContain('runs-on: windows-latest')
   })
 
-  const placeholderStep = (job: string) => /- name: Check the release config has no placeholders\n\s+run: \|\n((?:\s{10}.*\n)+)/.exec(job)?.[1].replace(/^ {10}/gm, '')
+  const placeholderStep = (job: string) => /- name: Check the release config has no placeholders\n\s+if: startsWith\(github\.ref, 'refs\/tags\/'\)\n\s+run: \|\n((?:\s{10}.*\n)+)/.exec(job)?.[1].replace(/^ {10}/gm, '')
 
   it.each([
     ['mac', () => macJob],
