@@ -140,10 +140,11 @@ jobs:
         run: |
           node -e '
             const r = JSON.parse(require("fs").readFileSync("vitest.json", "utf8"))
-            console.log("### Tests:", r.numPassedTests, "passed,", r.numFailedTests, "failed")
+            const lines = [r.numPassedTests + " passed, " + r.numFailedTests + " failed"]
             for (const f of r.testResults) for (const a of f.assertionResults) {
-              if (a.status === "failed") console.log("- " + f.name.split(/[\\/]/).pop() + " > " + a.fullName + " :: " + String(a.failureMessages[0]).split("\n")[0].slice(0, 140))
-            }' >> "$GITHUB_STEP_SUMMARY"
+              if (a.status === "failed") lines.push(f.name.split(/[\\/]/).pop() + " > " + a.fullName + " :: " + String(a.failureMessages[0]).split("\n")[0].slice(0, 120))
+            }
+            console.log("::warning title=Windows tests::" + lines.join("%0A"))'
       - name: Restore the whisper model
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
