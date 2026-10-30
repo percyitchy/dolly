@@ -1,0 +1,14 @@
+node_modules/
+out/
+dist/
+release/
+.vercel/
+.env*
+*.log
+.DS_Store
+native/bin/
+native/**/.build/
+native/whisper/src/
+native/whisper/models/
+native/ffmpeg/src/
+native/ffmpeg/build/

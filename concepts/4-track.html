@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dolly concept 4: Camera Track</title>
+<link rel="stylesheet" href="shared/tokens.css">
+<style>
+/* Camera Track: the timeline is the hero. Zooms are drawn as the camera's real move, so the ramps can be shaped. */
+html { --bg: #0C1018; --panel: #131925; --raise: #1F2736; --line: #263042; --track: min(356px, 40vh); }
+.app { display: grid; grid-template-columns: minmax(0, 1fr) 270px 270px; grid-template-rows: 46px minmax(0, 1fr) var(--track); }
+.bar { grid-column: 1 / -1; display: flex; align-items: center; gap: 11px; padding: 0 14px; background: var(--panel); border-bottom: 1px solid var(--line); }
+.view { padding: 14px; min-width: 0; min-height: 0; display: grid; }
+.col { display: flex; flex-direction: column; gap: 13px; padding: 14px; border-left: 1px solid var(--line); background: var(--panel); min-height: 0; overflow: auto; }
+.col h3 { margin: 0; font: 700 18px/1 var(--display); letter-spacing: -.015em; }
+.prop { display: grid; grid-template-columns: 62px 1fr 40px; gap: 10px; align-items: center; color: var(--muted); }
+.prop b { font: 500 12px/1 var(--mono); color: var(--ink); text-align: right; }
+.sum { margin-top: auto; display: grid; gap: 9px; }
+.sum p { margin: 0; color: var(--muted); font: 400 11.5px/1.45 var(--mono); }
+.sum .primary, .sum .ghost { height: 38px; }
+.col .seg > * { height: 26px; font-size: 12px; }
+
+.track { grid-column: 1 / -1; display: grid; grid-template-rows: 40px minmax(0, 1fr); padding: 0 16px 12px; background: var(--panel); border-top: 1px solid var(--line); min-height: 0; }
+.track-top { display: flex; align-items: center; gap: 14px; color: var(--muted); }
+.track-top .play { width: 26px; height: 26px; border-radius: 50%; background: var(--ink); color: var(--bg); display: grid; place-items: center; font-size: 10px; padding-left: 2px; }
+.track-top a { color: var(--ink); }
+.grid { display: grid; grid-template-columns: 46px minmax(0, 1fr); column-gap: 8px; min-height: 0; }
+.axis { display: grid; grid-template-rows: 22px minmax(0, 1fr) 18px 40px 26px; row-gap: 5px; color: var(--faint); font: 400 10.5px/1 var(--mono); }
+.axis .scale { position: relative; }
+.axis .scale span { position: absolute; right: 0; transform: translateY(-50%); }
+.lanes { position: relative; display: grid; grid-template-rows: 22px minmax(0, 1fr) 18px 40px 26px; row-gap: 5px; min-height: 0; }
+.lanes .lane { height: auto; }
+
+.curve { position: relative; border-radius: 8px; overflow: hidden;
+  background: repeating-linear-gradient(90deg, rgba(255,255,255,.035) 0 1px, transparent 1px 5%), var(--bg); }
+.curve svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.curve .fill { fill: color-mix(in srgb, var(--zoom) 26%, transparent); stroke: var(--zoom); stroke-width: 2; vector-effect: non-scaling-stroke; }
+.curve .sel { fill: color-mix(in srgb, var(--zoom) 46%, transparent); stroke: #fff; }
+.curve .base { stroke: var(--line); stroke-width: 1; vector-effect: non-scaling-stroke; stroke-dasharray: 3 4; }
+.grip { position: absolute; width: 11px; height: 11px; margin: -5.5px; border-radius: 3px; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.6); }
+.tag { position: absolute; top: 18%; transform: translateX(-50%); font: 500 12px/1 var(--mono); color: #fff; }
+.clicks { position: relative; border-radius: 6px; background: var(--raise); }
+.clicks .tick { background: #fff; }
+.clicks .stem { position: absolute; bottom: 100%; width: 1px; height: 400px; margin-left: -.5px; background: rgba(255,255,255,.1); }
+
+/* Clicking a locked option turns the export column into the offer, in place */
+.sheet { inset: 40px 0 0 auto; width: 270px; height: calc(100% - var(--track) - 86px); top: 86px; bottom: auto; }
+.scrim { display: none; }
+.sheet-card { inset: 0; width: auto; border-radius: 0; border-width: 0 0 0 1px; box-shadow: none; padding: 14px; gap: 10px; align-content: start; overflow: auto; animation: fade .12s ease-out; }
+.sheet-card h2 { font-size: 20px; }
+.sheet-card p { font-size: 12.5px; }
+.sheet-card ul { grid-template-columns: 1fr; gap: 3px; font-size: 12.5px; }
+.sheet-card .primary { height: 38px; }
+@keyframes fade { from { opacity: 0; } }
+</style>
+</head>
+<body>
+<nav class="proto"><a href="3-monitor.html">← Back</a><b>4 / 6 Camera Track</b><span class="thesis">The timeline is the hero. Each zoom is the camera's real move, ramps and all.</span><span class="grow"></span><label><input type="checkbox" id="prosim">Preview as Pro</label><a class="act" href="#upgrade">Show upgrade sheet</a><a href="5-three-up.html">Next →</a></nav>
+
+<div class="app">
+  <header class="bar">
+    <span class="lights"><i></i><i></i><i></i></span>
+    <span class="mark"><i></i></span>
+    <b>Launch demo</b>
+    <span class="grow"></span>
+    <a class="ghost" href="#">Record again</a>
+  </header>
+
+  <main class="view">
+    <div class="fit">
+      <div class="stage">
+        <div class="shot"><img class="z" src="shared/recording.svg" alt="Recording zoomed to the third task"></div>
+        <span class="zoomtag">2.0×</span>
+        <img class="bubble if-pro" src="shared/webcam.svg" alt="">
+        <div class="cap if-pro">Tick off the launch video and we're done.</div>
+      </div>
+    </div>
+  </main>
+
+  <aside class="col" aria-label="Selected zoom and look">
+    <h3>This zoom</h3>
+    <div class="prop"><span>Zoom</span><div class="slider" style="--v:50%"></div><b>2.0×</b></div>
+    <div class="prop"><span>Ease in</span><div class="slider" style="--v:40%"></div><b>0.6 s</b></div>
+    <div class="prop"><span>Ease out</span><div class="slider" style="--v:40%"></div><b>0.6 s</b></div>
+    <h3 style="margin-top:6px">Look</h3>
+    <div class="prop"><span>Padding</span><div class="slider" style="--v:30%"></div><b>6%</b></div>
+    <div class="row"><span>Smooth cursor</span><i class="toggle on"></i></div>
+    <a class="row" href="#upgrade"><span>Webcam bubble <i class="pro">Pro</i></span><i class="toggle"></i></a>
+    <a class="row" href="#upgrade"><span>Captions <i class="pro">Pro</i></span><i class="toggle"></i></a>
+  </aside>
+
+  <aside class="col" aria-label="Export">
+    <h3>Export</h3>
+    <div class="field"><span>Format</span><div class="seg"><a class="on" href="#">MP4</a><a href="#upgrade">GIF <i class="pro">Pro</i></a></div></div>
+    <div class="field"><span>Resolution</span><div class="seg"><a class="on" href="#">1080p</a><a href="#upgrade">4K <i class="pro">Pro</i></a></div></div>
+    <div class="field"><span>Frame rate</span><div class="seg"><a class="on" href="#">30</a><a href="#upgrade">60 <i class="pro">Pro</i></a></div></div>
+    <div class="field"><span>Aspect</span><div class="seg"><a class="on" href="#">16:9</a><a href="#">1:1</a><a href="#upgrade">9:16 <i class="pro">Pro</i></a></div></div>
+    <div class="sum"><p>About 22 MB · ~/Movies/Dolly</p><a class="primary" href="#">Export MP4</a></div>
+  </aside>
+
+  <section class="track" aria-label="Timeline">
+    <div class="track-top"><a class="play" href="#" aria-label="Play">▶</a><span class="tc" style="color:var(--ink)">00:00:07:36 <small>/ 00:00:20:00</small></span><span>4 zooms from 7 clicks</span><span class="grow"></span><a href="#">+ Add zoom</a><a href="#">Delete</a></div>
+    <div class="grid">
+      <div class="axis">
+        <span></span>
+        <div class="scale"><span style="top:12%">3×</span><span style="top:50%">2×</span><span style="top:88%">1×</span></div>
+        <span style="align-self:center">Clicks</span><span style="align-self:center">Screen</span><span style="align-self:center">Mic</span>
+      </div>
+      <div class="lanes">
+        <div class="ruler"><span style="left:0">0s</span><span style="left:25%">5s</span><span style="left:50%">10s</span><span style="left:75%">15s</span></div>
+        <div class="curve">
+          <svg viewBox="0 0 1000 100" preserveAspectRatio="none" aria-label="Camera zoom over time">
+            <path class="base" d="M0 50H1000"/>
+            <path class="fill" d="M75 88C90 88 90 50 105 50H220C235 50 235 88 250 88Z"/>
+            <path class="fill sel" d="M340 88C355 88 355 50 370 50H420C435 50 435 88 450 88Z"/>
+            <path class="fill" d="M560 88C575 88 575 50 590 50H680C695 50 695 88 710 88Z"/>
+            <path class="fill" d="M780 88C795 88 795 50 810 50H860C875 50 875 88 890 88Z"/>
+          </svg>
+          <span class="tag" style="left:16.25%;top:32%">2.0×</span><span class="tag" style="left:39.5%;top:32%">2.0×</span><span class="tag" style="left:63.5%;top:32%">2.0×</span><span class="tag" style="left:83.5%;top:32%">2.0×</span>
+          <i class="grip" style="left:34%;top:88%"></i><i class="grip" style="left:37%;top:50%"></i><i class="grip" style="left:42%;top:50%"></i><i class="grip" style="left:45%;top:88%"></i>
+        </div>
+        <div class="clicks"><i class="tick" style="left:10.5%"></i><i class="tick" style="left:14.5%"></i><i class="tick" style="left:18%"></i><i class="tick" style="left:37%"></i><i class="tick" style="left:59%"></i><i class="tick" style="left:63%"></i><i class="tick" style="left:81%"></i></div>
+        <div class="lane"><div class="film"></div></div>
+        <div class="lane"><img class="wave" src="shared/wave.svg" alt=""></div>
+        <i class="playhead"></i>
+      </div>
+    </div>
+  </section>
+</div>
+
+<aside class="sheet" id="upgrade" role="dialog" aria-label="Get Dolly Pro">
+  <div class="sheet-card">
+    <h2>4K export is in Dolly Pro</h2>
+    <p>One payment, no subscription. Works on up to 3 devices.</p>
+    <ul><li>4K and 60 fps</li><li>Captions</li><li>Webcam bubble</li><li>GIF export</li><li>9:16 vertical cut</li><li>Your own backgrounds</li></ul>
+    <a class="primary" href="https://whop.com/getdolly/dolly-lifetime-sub" target="_blank" rel="noopener">Get Pro for $9.99</a>
+    <div class="sub"><a href="#">I have a license key</a><a href="#">Not now</a></div>
+  </div>
+</aside>
+</body>
+</html>

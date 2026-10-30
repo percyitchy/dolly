@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" width="1600" height="900" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif">
+  <defs>
+    <linearGradient id="wall" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#2A2F5C"/><stop offset="1" stop-color="#1C2540"/></linearGradient>
+    <radialGradient id="warm" cx=".12" cy=".18" r=".62"><stop offset="0" stop-color="#FF8A5B"/><stop offset="1" stop-color="#FF8A5B" stop-opacity="0"/></radialGradient>
+    <radialGradient id="cool" cx=".92" cy=".85" r=".6"><stop offset="0" stop-color="#6B5BFF"/><stop offset="1" stop-color="#6B5BFF" stop-opacity="0"/></radialGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="125%"><feDropShadow dx="0" dy="30" stdDeviation="34" flood-color="#000" flood-opacity=".5"/></filter>
+    <clipPath id="win"><rect x="112" y="72" width="1376" height="756" rx="18"/></clipPath>
+  </defs>
+  <rect width="1600" height="900" fill="url(#wall)"/>
+  <rect width="1600" height="900" fill="url(#warm)"/>
+  <rect width="1600" height="900" fill="url(#cool)"/>
+  <rect x="112" y="72" width="1376" height="756" rx="18" fill="#fff" filter="url(#shadow)"/>
+  <g clip-path="url(#win)">
+    <rect x="112" y="72" width="1376" height="52" fill="#F5F6F8"/>
+    <rect x="112" y="124" width="300" height="704" fill="#F5F6F8"/>
+    <path d="M112 124.500H1488M412.500 124V828" stroke="#E4E7EC" fill="none"/>
+    <circle cx="140" cy="98" r="7.500" fill="#FF5F57"/><circle cx="164" cy="98" r="7.500" fill="#FEBC2E"/><circle cx="188" cy="98" r="7.500" fill="#28C840"/>
+    <text x="800" y="104" text-anchor="middle" font-size="17" fill="#7A808C">Launch plan · Notes</text>
+    <g font-size="19" fill="#7A808C">
+      <text x="140" y="176" font-weight="600" fill="#16191F">Workspace</text>
+      <text x="140" y="222">Inbox</text>
+      <rect x="128" y="246" width="268" height="38" rx="9" fill="#E4E7EC"/>
+      <text x="140" y="272" fill="#16191F">Launch plan</text>
+      <text x="140" y="322">Roadmap</text>
+      <text x="140" y="372">Design review</text>
+      <text x="140" y="422">Archive</text>
+    </g>
+    <text x="460" y="186" font-size="34" font-weight="600" fill="#16191F" letter-spacing="-.5">Friday launch checklist</text>
+    <text x="460" y="224" font-size="17" fill="#7A808C">Edited 2 min ago · 5 tasks</text>
+    <rect x="1336" y="152" width="94" height="42" rx="10" fill="#16191F"/>
+    <text x="1383" y="179" text-anchor="middle" font-size="17" font-weight="600" fill="#fff">Share</text>
+    <path d="M460 310.500H1430M460 380.500H1430M460 450.500H1430M460 520.500H1430" stroke="#E4E7EC" fill="none"/>
+    <g font-size="21">
+      <rect x="460" y="262" width="26" height="26" rx="7" fill="#2D63F5"/><path d="M466 275l5 5 9-10" stroke="#fff" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+      <text x="504" y="283" fill="#7A808C" text-decoration="line-through">Record the product demo</text>
+      <rect x="460" y="332" width="26" height="26" rx="7" fill="#2D63F5"/><path d="M466 345l5 5 9-10" stroke="#fff" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+      <text x="504" y="353" fill="#7A808C" text-decoration="line-through">Write the changelog</text>
+      <rect x="460" y="402" width="26" height="26" rx="7" fill="#2D63F5"/><path d="M466 415l5 5 9-10" stroke="#fff" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+      <text x="504" y="423" fill="#7A808C" text-decoration="line-through">Cut the launch video</text>
+      <rect x="461" y="473" width="24" height="24" rx="7" fill="#fff" stroke="#B7BCC6" stroke-width="2.500"/>
+      <text x="504" y="493" fill="#16191F">Post on X and Product Hunt</text>
+    </g>
+    <g font-size="17" fill="#7A808C" text-anchor="end">
+      <text x="1430" y="282">Léa</text><text x="1430" y="352">Nico</text><text x="1430" y="422">You</text><text x="1430" y="492">Sam</text>
+    </g>
+    <g fill="#F5F6F8" stroke="#E4E7EC">
+      <rect x="460" y="552" width="306" height="108" rx="12"/><rect x="792" y="552" width="306" height="108" rx="12"/><rect x="1124" y="552" width="306" height="108" rx="12"/>
+    </g>
+  </g>
+  <circle cx="473" cy="415" r="30" fill="#2D63F5" fill-opacity=".14" stroke="#2D63F5" stroke-width="3"/>
+  <path transform="translate(468 410) scale(1.900)" d="M2 1.500 15.500 9.200l-6 1.300-3 5.500z" fill="#111" stroke="#fff" stroke-width="1.400" stroke-linejoin="round"/>
+</svg>

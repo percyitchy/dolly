@@ -1,0 +1,49 @@
+/* Upgrade sheet and license field. :where() gives these defaults no weight, so the app's own tokens win when they exist */
+:where(:root) {
+  --bg: #0E1014; --panel: #161A20; --raise: #20252D; --line: #272C35;
+  --ink: #ECEEF2; --muted: #9AA1AD; --tally: #FF5A3D; --zoom: #5585FF;
+  --display: "Bricolage Grotesque", "Arial Narrow", system-ui, sans-serif;
+  --body: "Geist", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "Geist Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+
+.dolly-sheet { position: fixed; inset: 0; z-index: 50; }
+.dolly-sheet-scrim { position: absolute; inset: 0; width: 100%; padding: 0; border: 0; background: rgba(8, 10, 14, .45); cursor: default; }
+
+.dolly-sheet-card {
+  position: absolute; top: 0; right: 0; bottom: 0; width: 396px; max-width: 100%; overflow-y: auto;
+  display: grid; align-content: center; gap: 18px; padding: 30px 26px;
+  border-left: 1px solid var(--line); background: var(--panel); color: var(--ink);
+  font: 400 13px/1.4 var(--body); box-shadow: 0 30px 80px -20px rgba(0, 0, 0, .7);
+  animation: dolly-sheet-draw .2s ease-out;
+}
+.dolly-sheet-card h2 { margin: 0; font: 700 32px/1.08 var(--display); letter-spacing: -.025em; }
+.dolly-sheet-card > p { margin: 0; color: var(--muted); font-size: 14px; }
+.dolly-sheet-card ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 9px; font-size: 14.5px; }
+.dolly-sheet-card li::before { content: "✓"; margin-right: 7px; color: var(--tally); font-weight: 600; }
+
+.dolly-sheet-sub { display: flex; justify-content: space-between; color: var(--muted); font-size: 12.5px; }
+.dolly-sheet-sub button { padding: 0; border: 0; background: none; color: inherit; font: inherit; cursor: pointer; }
+.dolly-sheet-sub button:hover { color: var(--ink); }
+
+@keyframes dolly-sheet-draw { from { transform: translateX(100%); } }
+@media (prefers-reduced-motion: reduce) { .dolly-sheet-card { animation: none; } }
+
+.dolly-primary, .dolly-ghost { display: inline-flex; align-items: center; justify-content: center; border-radius: 9px; cursor: pointer; }
+.dolly-primary { height: 42px; padding: 0 14px; border: 0; background: var(--ink); color: var(--bg); font: 600 14.5px/1 var(--body); }
+.dolly-primary:disabled { opacity: .5; cursor: default; }
+.dolly-ghost { height: 34px; padding: 0 12px; border: 1px solid var(--line); background: none; color: var(--ink); font: 500 13px/1 var(--body); }
+
+.dolly-license { display: grid; gap: 12px; }
+.dolly-license p { margin: 0; }
+.dolly-license-on { color: var(--ink); font-size: 14px; }
+.dolly-license-note { color: var(--muted); font-size: 12.5px; }
+.dolly-license-error { color: var(--tally); font-size: 13px; }
+
+.dolly-field { display: grid; gap: 7px; }
+.dolly-field > span { font: 500 10.5px/1 var(--mono); letter-spacing: .07em; text-transform: uppercase; color: var(--muted); }
+.dolly-field input { width: 100%; height: 38px; padding: 0 11px; border: 1px solid var(--line); border-radius: 9px; background: var(--raise); color: var(--ink); font: 400 13px/1 var(--mono); }
+.dolly-field input[aria-invalid="true"] { border-color: var(--tally); }
+.dolly-field input:disabled { opacity: .6; }
+
+.dolly-sheet-card :focus-visible, .dolly-license :focus-visible { outline: 2px solid var(--zoom); outline-offset: 2px; }

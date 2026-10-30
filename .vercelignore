@@ -1,0 +1,4 @@
+# Vercel gets the license function and nothing else, never the Electron app
+/*
+!api
+!vercel.json

@@ -1,0 +1,70 @@
+@font-face { font-family: "Bricolage Grotesque"; src: url("../assets/fonts/bricolage-grotesque-latin-wght-normal.woff2") format("woff2"); font-weight: 200 800; font-display: block; }
+@font-face { font-family: "Geist"; src: url("../assets/fonts/geist-latin-wght-normal.woff2") format("woff2"); font-weight: 100 900; font-display: block; }
+@font-face { font-family: "Geist Mono"; src: url("../assets/fonts/geist-mono-latin-wght-normal.woff2") format("woff2"); font-weight: 100 900; font-display: block; }
+
+/* Ported from concepts/shared/tokens.css. Nothing here loads from the network. Geist, Geist Mono and
+   Bricolage Grotesque aren't available locally, so the stacks are system fonts. To bundle them later,
+   add @font-face rules with local files and put the names first in these stacks. */
+:root {
+  color-scheme: dark;
+  --bg: #0E1014; --panel: #161A20; --raise: #20252D; --line: #272C35;
+  --ink: #ECEEF2; --muted: #9AA1AD; --faint: #7E8694;
+  --tally: #FF5A3D; --zoom: #5585FF;
+  --pro: #FF9580; --pro-bg: rgba(255, 90, 61, .15);
+  --display: "Bricolage Grotesque", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --body: "Geist", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "Geist Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+}
+
+* { box-sizing: border-box; }
+html, body, #root { height: 100%; margin: 0; }
+body { background: var(--bg); color: var(--ink); font: 400 13px/1.4 var(--body); -webkit-font-smoothing: antialiased; overflow: hidden; }
+a { color: inherit; text-decoration: none; }
+b { font-weight: 600; }
+button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
+button:disabled { cursor: default; }
+h1, h2, p, ul { margin: 0; }
+ul { padding: 0; list-style: none; }
+:focus-visible { outline: 2px solid var(--zoom); outline-offset: 2px; border-radius: 6px; }
+
+.mark { width: 20px; height: 20px; border-radius: 6px; background: var(--ink); display: inline-grid; place-items: center; flex: none; }
+.mark i { width: 7px; height: 7px; border-radius: 50%; background: var(--tally); }
+.pro { display: inline-block; font: 500 9.5px/1 var(--mono); letter-spacing: .04em; color: var(--pro); background: var(--pro-bg); border-radius: 4px; padding: 3px 4px; vertical-align: 1px; font-style: normal; }
+.tc { font: 500 13px/1 var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.tc small { color: var(--muted); font-size: 13px; }
+.grow { flex: 1; }
+.muted { color: var(--muted); }
+.error { color: var(--pro); }
+
+.primary { display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 34px; padding: 0 14px; border-radius: 9px; background: var(--ink); color: var(--bg); font: 600 13px/1 var(--body); white-space: nowrap; }
+.primary:disabled { opacity: .45; }
+.ghost { display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 34px; padding: 0 12px; border-radius: 9px; border: 1px solid var(--line); color: var(--ink); font: 500 13px/1 var(--body); white-space: nowrap; }
+.ghost:hover:not(:disabled) { background: var(--raise); }
+.ghost:disabled { opacity: .5; }
+.small { height: 28px; padding: 0 10px; font-size: 12.5px; border-radius: 7px; }
+.wide { width: 100%; }
+.link { color: var(--muted); text-decoration: underline; text-underline-offset: 2px; justify-self: start; }
+.link:hover { color: var(--ink); }
+
+.seg { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 2px; padding: 3px; border-radius: 9px; background: var(--raise); }
+.seg > * { display: flex; align-items: center; justify-content: center; gap: 5px; height: 28px; padding: 0 6px; border-radius: 6px; color: var(--muted); font: 500 12.5px/1 var(--body); white-space: nowrap; }
+.seg > .on { background: var(--panel); color: var(--ink); box-shadow: 0 1px 2px rgba(0,0,0,.25); }
+.seg > :disabled { opacity: .4; }
+
+.field { display: grid; gap: 7px; }
+.field > span, .field-head { font: 500 10.5px/1 var(--mono); letter-spacing: .07em; text-transform: uppercase; color: var(--muted); }
+.field-head { display: flex; justify-content: space-between; gap: 10px; }
+.field-head output { color: var(--ink); text-transform: none; letter-spacing: 0; }
+.field.disabled, .row.disabled { opacity: .45; }
+.row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.row-label { font-weight: 500; }
+
+.toggle { width: 30px; height: 18px; border-radius: 9px; background: var(--raise); position: relative; flex: none; }
+.toggle::after { content: ""; position: absolute; left: 2px; top: 2px; width: 14px; height: 14px; border-radius: 50%; background: var(--muted); }
+.toggle.on { background: var(--zoom); }
+.toggle.on::after { left: 14px; background: #fff; }
+
+.slider { appearance: none; -webkit-appearance: none; width: 100%; height: 14px; margin: 0; background: none; cursor: pointer; }
+.slider::-webkit-slider-runnable-track { height: 4px; border-radius: 2px; background: linear-gradient(90deg, var(--zoom) var(--v, 50%), var(--raise) var(--v, 50%)); }
+.slider::-webkit-slider-thumb { -webkit-appearance: none; width: 14px; height: 14px; margin-top: -5px; border-radius: 50%; background: #fff; box-shadow: 0 0 0 1px rgba(0,0,0,.2), 0 1px 3px rgba(0,0,0,.4); }
+.slider:disabled { cursor: default; }

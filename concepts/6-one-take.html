@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en" data-skin="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dolly concept 6: One Take</title>
+<link rel="stylesheet" href="shared/tokens.css">
+<style>
+/* One Take: the video is already finished when the recording stops. The first thing you see is the result. */
+.app { position: relative; display: grid; grid-template-rows: 46px auto minmax(0, 1fr) auto; justify-items: center; overflow: hidden; }
+.bar { width: 100%; display: flex; align-items: center; gap: 11px; padding: 0 14px; }
+.ready { display: grid; justify-items: center; gap: 4px; padding: 0 0 12px; text-align: center; }
+.ready h1 { margin: 0; font: 800 30px/1 var(--display); letter-spacing: -.03em; }
+.ready h1 em { font-style: normal; color: var(--tally); }
+.ready p { margin: 0; color: var(--muted); font-size: 14px; }
+.middle { width: 100%; display: grid; grid-template-columns: minmax(0, 1fr) 306px; gap: 18px; padding: 0 24px; min-height: 0; max-width: 1400px; }
+.stagewrap { display: grid; grid-template-rows: minmax(0, 1fr) auto; gap: 10px; min-height: 0; min-width: 0; }
+.fit > .stage { border-radius: 16px; box-shadow: 0 24px 60px -28px rgba(15,18,23,.55); }
+.pills { position: relative; display: flex; align-items: center; gap: 12px; }
+.pills .play { width: 34px; height: 34px; border-radius: 50%; background: var(--ink); color: var(--bg); display: grid; place-items: center; font-size: 11px; padding-left: 2px; flex: none; }
+.bead { position: relative; flex: 1; height: 26px; border-radius: 13px; background: var(--raise); }
+.bead .block { top: 0; bottom: 0; padding: 0; justify-content: center; border-radius: 13px; }
+.bead .block::before, .bead .block::after { display: none; }
+.bead .playhead { top: -4px; bottom: -4px; }
+.pills .tc { color: var(--muted); font-size: 12px; }
+
+.tray { display: flex; flex-direction: column; gap: 15px; padding: 16px; background: var(--panel); border: 1px solid var(--line); border-radius: 18px; min-height: 0; overflow: auto; }
+.tray h3 { margin: 0; font: 700 19px/1 var(--display); letter-spacing: -.015em; }
+.walls { display: grid; grid-template-columns: repeat(6, 1fr); gap: 7px; }
+.walls i { display: block; aspect-ratio: 1; border-radius: 9px; }
+.w1 { background: radial-gradient(90% 90% at 15% 15%, #FF8A5B, transparent 70%), linear-gradient(140deg, #6B5BFF, #1C2540); box-shadow: 0 0 0 2px var(--panel), 0 0 0 4px var(--zoom); }
+.w2 { background: linear-gradient(140deg, #F6D5C5, #E7A8B6); }
+.w3 { background: linear-gradient(140deg, #A9E2D0, #4F9BB8); }
+.w4 { background: #0F1217; }
+.w5 { background: #ECEEF1; box-shadow: inset 0 0 0 1px var(--line); }
+.w6 { display: grid !important; place-items: center; border: 1.5px dashed var(--faint); color: var(--pro); font: 500 9px/1 var(--mono); }
+.big { margin-top: auto; display: grid; gap: 9px; }
+.big .primary { height: 46px; font-size: 15px; border-radius: 12px; }
+.big small { color: var(--muted); text-align: center; }
+.foot { height: 18px; }
+
+/* A native-style sheet that drops from the title bar */
+.scrim { background: rgba(236,238,241,.6); }
+.sheet-card { left: 50%; top: 0; margin-left: -210px; width: 420px; border-radius: 0 0 16px 16px; border-top: 0; padding: 22px 24px; box-shadow: 0 30px 70px -24px rgba(15,18,23,.5); animation: drop .2s ease-out; }
+@keyframes drop { from { transform: translateY(-100%); } }
+</style>
+</head>
+<body>
+<nav class="proto"><a href="5-three-up.html">← Back</a><b>6 / 6 One Take</b><span class="thesis">The video is already done when you stop recording. Change a little, or just export.</span><span class="grow"></span><label><input type="checkbox" id="prosim">Preview as Pro</label><a class="act" href="#upgrade">Show upgrade sheet</a><a href="index.html">All six →</a></nav>
+
+<div class="app">
+  <header class="bar">
+    <span class="lights"><i></i><i></i><i></i></span>
+    <span class="mark"><i></i></span>
+    <b>Launch demo</b>
+    <span class="grow"></span>
+    <a class="ghost" href="#">Open full timeline</a>
+  </header>
+
+  <div class="ready">
+    <h1>Done in <em>one take.</em></h1>
+    <p>20 seconds · 4 zooms added · cursor smoothed</p>
+  </div>
+
+  <main class="middle">
+    <div class="stagewrap">
+      <div class="fit">
+        <div class="stage">
+          <div class="shot"><img class="z" src="shared/recording.svg" alt="Recording zoomed to the third task"></div>
+          <img class="bubble if-pro" src="shared/webcam.svg" alt="">
+          <div class="cap if-pro">Tick off the launch video and we're done.</div>
+        </div>
+      </div>
+      <div class="pills" aria-label="Timeline">
+        <a class="play" href="#" aria-label="Play">▶</a>
+        <div class="bead">
+          <div class="block" style="left:7.5%;width:17.5%">2×</div>
+          <div class="block sel" style="left:34%;width:11%">2×</div>
+          <div class="block" style="left:56%;width:15%">2×</div>
+          <div class="block" style="left:78%;width:11%">2×</div>
+          <i class="playhead"></i>
+        </div>
+        <span class="tc">0:07 / 0:20</span>
+      </div>
+    </div>
+
+    <aside class="tray">
+      <h3>Finish it</h3>
+      <div class="field"><span>Background</span>
+        <div class="walls"><i class="w1"></i><i class="w2"></i><i class="w3"></i><i class="w4"></i><i class="w5"></i><a class="w6" href="#upgrade">Pro</a></div>
+      </div>
+      <div class="field"><span>Padding</span><div class="slider" style="--v:30%;margin:5px 0 4px"></div></div>
+      <div class="row"><span>Smooth cursor</span><i class="toggle on"></i></div>
+      <a class="row" href="#upgrade"><span>Webcam bubble <i class="pro">Pro</i></span><i class="toggle"></i></a>
+      <a class="row" href="#upgrade"><span>Captions <i class="pro">Pro</i></span><i class="toggle"></i></a>
+      <div class="field"><span>Export as</span>
+        <div class="seg"><a class="on" href="#">MP4</a><a href="#upgrade">GIF <i class="pro">Pro</i></a></div>
+        <div class="seg"><a class="on" href="#">1080p</a><a href="#upgrade">4K <i class="pro">Pro</i></a></div>
+        <div class="seg"><a class="on" href="#">30</a><a href="#upgrade">60 <i class="pro">Pro</i></a></div>
+        <div class="seg"><a class="on" href="#">16:9</a><a href="#">1:1</a><a href="#upgrade">9:16 <i class="pro">Pro</i></a></div>
+      </div>
+      <div class="big"><a class="primary" href="#">Export MP4</a><small>About 22 MB · no watermark</small></div>
+    </aside>
+  </main>
+  <div class="foot"></div>
+</div>
+
+<aside class="sheet" id="upgrade" role="dialog" aria-label="Get Dolly Pro">
+  <a class="scrim" href="#" aria-label="Close"></a>
+  <div class="sheet-card">
+    <h2>4K export is in Dolly Pro</h2>
+    <p>One payment, no subscription. Works on up to 3 devices.</p>
+    <ul><li>4K and 60 fps</li><li>Captions</li><li>Webcam bubble</li><li>GIF export</li><li>9:16 vertical cut</li><li>Your own backgrounds</li></ul>
+    <a class="primary" href="https://whop.com/getdolly/dolly-lifetime-sub" target="_blank" rel="noopener">Get Pro for $9.99</a>
+    <div class="sub"><a href="#">I have a license key</a><a href="#">Not now</a></div>
+  </div>
+</aside>
+</body>
+</html>

@@ -1,0 +1,90 @@
+appId: app.dolly.recorder
+productName: Dolly
+copyright: Copyright © Dolly contributors
+directories:
+  output: release
+  buildResources: build
+# uiohook-napi, on Windows only, ships N-API prebuilds, so nothing needs compiling against Electron
+npmRebuild: false
+# No auto-update: no update feed, no blockmaps, nothing for the app to phone home to
+publish: null
+# Fuses are flipped in the Electron binary at package time, so they can't be undone from the outside.
+# Cookie encryption stays off: Dolly stores no cookies, and on an ad-hoc build the key in the Keychain
+# would ask the user for access again after every update, for nothing
+electronFuses:
+  runAsNode: false
+  enableCookieEncryption: false
+  enableNodeOptionsEnvironmentVariable: false
+  enableNodeCliInspectArguments: false
+  enableEmbeddedAsarIntegrityValidation: true
+  onlyLoadAppFromAsar: true
+asarUnpack:
+  - '**/node_modules/ffmpeg-static/ffmpeg'
+  - '**/node_modules/ffmpeg-static/ffmpeg.exe'
+  - '**/node_modules/uiohook-napi/prebuilds/**'
+extraResources:
+  - from: LICENSES
+    to: LICENSES
+  - from: LICENSE
+    to: LICENSES/Dolly-MIT.txt
+
+mac:
+  target:
+    - target: dmg
+      arch: [arm64]
+  icon: build/icon.icns
+  category: public.app-category.video
+  # Ad-hoc: unsigned code won't run on Apple silicon, and there is no Developer ID
+  identity: '-'
+  hardenedRuntime: true
+  gatekeeperAssess: false
+  entitlements: build/entitlements.mac.plist
+  entitlementsInherit: build/entitlements.mac.plist
+  # whisper-cli is built for 13.3
+  minimumSystemVersion: '13.3'
+  artifactName: Dolly-${version}-mac-${arch}.${ext}
+  # The model is data. codesign would stick a signature on it as extended attributes
+  signIgnore:
+    - /Resources/bin/models/
+  # A platform's files list replaces a top-level one, so each platform states the whole list
+  files:
+    - out/**
+    - package.json
+    # dolly-capture records the mouse on macOS, where stopping uiohook-napi can deadlock. The app never loads it
+    - '!**/node_modules/uiohook-napi{,/**}'
+    - '!**/node_modules/node-gyp-build{,/**}'
+    # macOS uses native/ffmpeg's build. ffmpeg-static's macOS binary can't be redistributed
+    - '!**/node_modules/ffmpeg-static/ffmpeg'
+    - '!**/node_modules/ffmpeg-static/ffmpeg.exe'
+  extraResources:
+    - from: native/bin/darwin-arm64
+      to: bin
+  extendInfo:
+    NSMicrophoneUsageDescription: Dolly records your microphone while you record your screen.
+    NSCameraUsageDescription: Dolly records your webcam for the webcam bubble.
+    NSScreenCaptureUsageDescription: Dolly records your screen.
+
+dmg:
+  writeUpdateInfo: false
+
+win:
+  target:
+    - target: nsis
+      arch: [x64]
+  icon: build/icon.ico
+  artifactName: Dolly-${version}-win-${arch}.${ext}
+  files:
+    - out/**
+    - package.json
+    - '!**/node_modules/uiohook-napi/{binding.gyp,libuiohook,src}{,/**}'
+    - '!**/node_modules/uiohook-napi/prebuilds/!(win32-x64)/**'
+    - '!**/node_modules/ffmpeg-static/ffmpeg'
+  extraResources:
+    - from: native/bin/win32-x64
+      to: bin
+
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  differentialPackage: false

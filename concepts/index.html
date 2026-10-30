@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en" data-skin="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dolly Editor Concepts</title>
+<link rel="stylesheet" href="shared/tokens.css">
+<style>
+html, body { height: auto; }
+body { display: block; min-width: 0; font-size: 15px; line-height: 1.5; }
+.wrap { max-width: 1320px; margin: 0 auto; padding: 34px 24px 60px; }
+.head { display: flex; align-items: flex-end; gap: 28px; justify-content: space-between; flex-wrap: wrap; margin-bottom: 26px; }
+.brand { display: flex; align-items: center; gap: 9px; font: 700 19px/1 var(--display); letter-spacing: -.02em; margin-bottom: 18px; }
+h1 { margin: 0; font: 800 clamp(34px, 5vw, 58px)/.98 var(--display); letter-spacing: -.04em; }
+h1 em { font-style: normal; color: var(--tally); }
+.lede { margin: 0; max-width: 46ch; color: var(--muted); }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 380px), 1fr)); gap: 18px; }
+.c { display: grid; grid-template-rows: auto 1fr; background: var(--panel); border: 1px solid var(--line); border-radius: 16px; overflow: hidden; }
+.c:hover { border-color: var(--ink); }
+.thumb { position: relative; aspect-ratio: 1440 / 860; overflow: hidden; background: var(--raise); border-bottom: 1px solid var(--line); }
+.thumb iframe { position: absolute; left: 0; top: 0; width: 1440px; height: 900px; border: 0; transform-origin: 0 0; pointer-events: none; }
+.body { display: grid; gap: 7px; align-content: start; padding: 15px 16px 16px; }
+.c h2 { margin: 0; font: 700 22px/1.1 var(--display); letter-spacing: -.02em; }
+.c h2 small { font: 500 12px/1 var(--mono); color: var(--faint); letter-spacing: 0; margin-right: 7px; }
+.c p { margin: 0; color: var(--muted); font-size: 14px; }
+.c dl { display: grid; grid-template-columns: 62px 1fr; gap: 3px 10px; margin: 5px 0 0; font-size: 13px; }
+.c dt { color: var(--faint); font: 500 11px/1.7 var(--mono); }
+.c dd { margin: 0; }
+.tip { margin-top: 22px; color: var(--muted); font-size: 14px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="head">
+    <div>
+      <div class="brand"><span class="mark"><i></i></span>Dolly</div>
+      <h1>Six ways to <em>cut it.</em></h1>
+    </div>
+    <p class="lede">Same recording, same features, same words. Only the shape of the editor changes. Open one, then tick Preview as Pro or press Show upgrade sheet at the top.</p>
+  </header>
+
+  <main class="grid">
+    <a class="c" href="1-rails.html">
+      <div class="thumb"><iframe src="1-rails.html" title="Rails preview" loading="lazy" tabindex="-1"></iframe></div>
+      <div class="body"><h2><small>1</small>Rails</h2><p>Stage, tool rail, full timeline. The editor people already know.</p>
+        <dl><dt>Best for</dt><dd>Anyone arriving from another editor</dd><dt>Risk</dt><dd>Looks like every other screen recorder</dd><dt>Upgrade</dt><dd>Centred modal</dd></dl></div>
+    </a>
+    <a class="c" href="2-shot-list.html">
+      <div class="thumb"><iframe src="2-shot-list.html" title="Shot List preview" loading="lazy" tabindex="-1"></iframe></div>
+      <div class="body"><h2><small>2</small>Shot List</h2><p>Every zoom is a card with a thumbnail. You edit a script, and the timeline only places it.</p>
+        <dl><dt>Best for</dt><dd>Fast review of what the camera will do</dd><dt>Risk</dt><dd>Long recordings make a long list</dd><dt>Upgrade</dt><dd>Bottom sheet</dd></dl></div>
+    </a>
+    <a class="c" href="3-monitor.html">
+      <div class="thumb"><iframe src="3-monitor.html" title="Monitor preview" loading="lazy" tabindex="-1"></iframe></div>
+      <div class="body"><h2><small>3</small>Monitor</h2><p>The picture fills the window. Controls float over it and step aside.</p>
+        <dl><dt>Best for</dt><dd>Judging the video at full size</dd><dt>Risk</dt><dd>Panels cover the frame while you edit</dd><dt>Upgrade</dt><dd>Small popover beside the click</dd></dl></div>
+    </a>
+    <a class="c" href="4-track.html">
+      <div class="thumb"><iframe src="4-track.html" title="Camera Track preview" loading="lazy" tabindex="-1"></iframe></div>
+      <div class="body"><h2><small>4</small>Camera Track</h2><p>The timeline is the hero. Zooms are drawn as the camera's real move, with ramps you can grab.</p>
+        <dl><dt>Best for</dt><dd>People who want precise control</dd><dt>Risk</dt><dd>Smallest preview, most to take in</dd><dt>Upgrade</dt><dd>Replaces the export column in place</dd></dl></div>
+    </a>
+    <a class="c" href="5-three-up.html">
+      <div class="thumb"><iframe src="5-three-up.html" title="Three-Up preview" loading="lazy" tabindex="-1"></iframe></div>
+      <div class="body"><h2><small>5</small>Three-Up</h2><p>16:9, 1:1 and 9:16 side by side. Tick the shapes you want and export them together.</p>
+        <dl><dt>Best for</dt><dd>Posting one video to several places</dd><dt>Risk</dt><dd>Batch export adds build scope</dd><dt>Upgrade</dt><dd>Right-hand drawer</dd></dl></div>
+    </a>
+    <a class="c" href="6-one-take.html">
+      <div class="thumb"><iframe src="6-one-take.html" title="One Take preview" loading="lazy" tabindex="-1"></iframe></div>
+      <div class="body"><h2><small>6</small>One Take</h2><p>The video is done when you stop recording. Change a little, or just export.</p>
+        <dl><dt>Best for</dt><dd>First-time users and quick demos</dd><dt>Risk</dt><dd>Zoom blocks are small until you open the full timeline</dd><dt>Upgrade</dt><dd>Sheet dropping from the title bar</dd></dl></div>
+    </a>
+  </main>
+  <p class="tip">The black strip on each page is only for this review. It isn't part of the app.</p>
+</div>
+<script>
+// Scale each live preview to its card
+const fit = () => document.querySelectorAll(".thumb").forEach(t => {
+  const f = t.querySelector("iframe"), s = t.clientWidth / 1440;
+  f.style.transform = `scale(${s})`;
+  f.style.top = `${-40 * s}px`;   // hide the black review strip
+});
+fit();
+addEventListener("resize", fit);
+</script>
+</body>
+</html>

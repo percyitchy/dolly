@@ -1,0 +1,9 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": null,
+  "installCommand": "",
+  "buildCommand": "",
+  "functions": {
+    "api/validate.ts": { "maxDuration": 15 }
+  }
+}

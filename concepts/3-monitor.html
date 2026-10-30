@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dolly concept 3: Monitor</title>
+<link rel="stylesheet" href="shared/tokens.css">
+<style>
+/* Monitor: the picture is the whole window. Every control floats over it and can get out of the way. */
+.app { position: relative; background: #000; overflow: hidden; }
+.app > .fit { position: absolute; inset: 0; }
+.fit > .stage { border-radius: 0; }
+.glass { position: absolute; background: rgba(16,19,25,.74); -webkit-backdrop-filter: blur(20px) saturate(1.4); backdrop-filter: blur(20px) saturate(1.4); border: 1px solid rgba(255,255,255,.1); border-radius: 14px; box-shadow: 0 16px 40px -16px rgba(0,0,0,.7); }
+.title { left: 14px; top: 14px; display: flex; align-items: center; gap: 11px; height: 42px; padding: 0 14px; }
+.top { right: 14px; top: 14px; display: flex; align-items: center; gap: 7px; height: 42px; padding: 0 5px 0 12px; color: var(--muted); }
+.top .primary { height: 32px; }
+
+.tools { left: 14px; top: 50%; transform: translateY(-50%); display: grid; gap: 2px; padding: 5px; }
+.tools a { position: relative; display: grid; justify-items: center; gap: 4px; width: 56px; padding: 9px 0 7px; border-radius: 10px; color: #C5CAD3; font: 500 10px/1 var(--body); }
+.tools a.on { background: rgba(255,255,255,.12); color: #fff; }
+.tools svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+.tools .pro { position: absolute; right: 3px; top: 3px; font-size: 8px; padding: 2px 3px; }
+
+.pop { right: 14px; top: 66px; width: 288px; display: grid; gap: 15px; padding: 15px; }
+.pop header { display: flex; justify-content: space-between; align-items: center; }
+.pop h3 { margin: 0; font: 700 19px/1 var(--display); letter-spacing: -.015em; }
+.pop header a { color: var(--muted); font-size: 18px; line-height: 1; }
+.pop .seg { background: rgba(255,255,255,.08); }
+.pop .seg > .on { background: rgba(255,255,255,.18); }
+.pop p { margin: 0; color: var(--muted); font: 400 12px/1.5 var(--mono); }
+.pop .primary { height: 40px; }
+#hide-export:target ~ .app .pop { display: none; }
+
+.dock { left: 50%; bottom: 14px; transform: translateX(-50%); width: min(1000px, calc(100% - 180px)); display: grid; gap: 8px; padding: 10px 14px 12px; }
+.dock-top { display: flex; align-items: center; gap: 12px; color: var(--muted); }
+.dock .play { width: 28px; height: 28px; border-radius: 50%; background: #fff; color: #000; display: grid; place-items: center; font-size: 10px; padding-left: 2px; }
+.lanes { position: relative; }
+.lanes .lane { height: 36px; background: rgba(255,255,255,.08); }
+.lanes .film { opacity: .35; }
+.lanes .tick { top: auto; bottom: 2px; width: 5px; height: 5px; margin: 0 -2.5px; background: #fff; z-index: 2; }
+.lanes .playhead { top: -5px; bottom: -5px; }
+
+/* The sheet stays small and sits next to what you clicked, so the picture stays in view */
+.scrim { background: transparent; }
+.sheet-card { right: 316px; top: 196px; width: 330px; padding: 18px; gap: 11px; background: rgba(16,19,25,.92); -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px); border-color: rgba(255,255,255,.14); animation: slip .15s ease-out; }
+.sheet-card::after { content: ""; position: absolute; right: -7px; top: 74px; width: 12px; height: 12px; transform: rotate(45deg); background: rgb(22,25,31); border: solid rgba(255,255,255,.14); border-width: 1px 1px 0 0; }
+.sheet-card h2 { font-size: 21px; }
+.sheet-card p { font-size: 13px; }
+.sheet-card ul { font-size: 12.5px; }
+@keyframes slip { from { opacity: 0; transform: translateX(8px); } }
+</style>
+</head>
+<body>
+<span id="hide-export" hidden></span>
+<nav class="proto"><a href="2-shot-list.html">← Back</a><b>3 / 6 Monitor</b><span class="thesis">The picture is the whole window. Controls float over it and step aside.</span><span class="grow"></span><label><input type="checkbox" id="prosim">Preview as Pro</label><a class="act" href="#upgrade">Show upgrade sheet</a><a href="4-track.html">Next →</a></nav>
+
+<div class="app">
+  <div class="fit">
+    <div class="stage">
+      <div class="shot"><img class="z" src="shared/recording.svg" alt="Recording zoomed to the third task"></div>
+      <img class="bubble if-pro" style="bottom:22%" src="shared/webcam.svg" alt="">
+      <div class="cap if-pro" style="bottom:22%">Tick off the launch video and we're done.</div>
+    </div>
+  </div>
+
+  <div class="glass title"><span class="lights"><i></i><i></i><i></i></span><span class="mark"><i></i></span><b>Launch demo</b></div>
+  <div class="glass top"><span>2.0×</span><a class="primary" href="#">Export</a></div>
+
+  <nav class="glass tools" aria-label="Tools">
+    <a href="#"><svg viewBox="0 0 20 20"><rect x="3" y="4" width="14" height="12" rx="2"/><path d="M3 13l4-3 3 2 3-3 4 4"/></svg>Look</a>
+    <a href="#"><svg viewBox="0 0 20 20"><path d="M5 3l11 6-5 1.500L8.500 16z"/></svg>Cursor</a>
+    <a class="on" href="#"><svg viewBox="0 0 20 20"><circle cx="9" cy="9" r="5.500"/><path d="M13.500 13.500 17 17M7 9h4M9 7v4"/></svg>Zoom</a>
+    <a href="#upgrade"><svg viewBox="0 0 20 20"><circle cx="10" cy="8" r="5"/><path d="M5 17h10M10 13v4"/></svg>Webcam<i class="pro">Pro</i></a>
+    <a href="#upgrade"><svg viewBox="0 0 20 20"><rect x="3" y="5" width="14" height="10" rx="2"/><path d="M6 11h3M11 11h3M6 8h8"/></svg>Captions<i class="pro">Pro</i></a>
+  </nav>
+
+  <section class="glass pop" aria-label="Export">
+    <header><h3>Export</h3><a href="#hide-export" aria-label="Close export">×</a></header>
+    <div class="field"><span>Format</span><div class="seg"><a class="on" href="#">MP4</a><a href="#upgrade">GIF <i class="pro">Pro</i></a></div></div>
+    <div class="field"><span>Resolution</span><div class="seg"><a class="on" href="#">1080p</a><a href="#upgrade">4K <i class="pro">Pro</i></a></div></div>
+    <div class="field"><span>Frame rate</span><div class="seg"><a class="on" href="#">30</a><a href="#upgrade">60 <i class="pro">Pro</i></a></div></div>
+    <div class="field"><span>Aspect</span><div class="seg"><a class="on" href="#">16:9</a><a href="#">1:1</a><a href="#upgrade">9:16 <i class="pro">Pro</i></a></div></div>
+    <p>About 22 MB · saves to ~/Movies/Dolly</p>
+    <a class="primary" href="#">Export MP4</a>
+  </section>
+
+  <section class="glass dock" aria-label="Timeline">
+    <div class="dock-top"><a class="play" href="#" aria-label="Play">▶</a><span class="tc" style="color:#fff">00:00:07:36 <small>/ 00:00:20:00</small></span><span class="grow"></span><span>4 zooms from 7 clicks</span></div>
+    <div class="lanes">
+      <div class="lane">
+        <div class="film"></div>
+        <div class="block" style="left:7.5%;width:17.5%">2.0×</div>
+        <div class="block sel" style="left:34%;width:11%">2.0×</div>
+        <div class="block" style="left:56%;width:15%">2.0×</div>
+        <div class="block" style="left:78%;width:11%">2.0×</div>
+        <i class="tick" style="left:10.5%"></i><i class="tick" style="left:14.5%"></i><i class="tick" style="left:18%"></i><i class="tick" style="left:37%"></i><i class="tick" style="left:59%"></i><i class="tick" style="left:63%"></i><i class="tick" style="left:81%"></i>
+      </div>
+      <i class="playhead"></i>
+    </div>
+  </section>
+</div>
+
+<aside class="sheet" id="upgrade" role="dialog" aria-label="Get Dolly Pro">
+  <a class="scrim" href="#" aria-label="Close"></a>
+  <div class="sheet-card">
+    <h2>4K export is in Dolly Pro</h2>
+    <p>One payment, no subscription. Works on up to 3 devices.</p>
+    <ul><li>4K and 60 fps</li><li>Captions</li><li>Webcam bubble</li><li>GIF export</li><li>9:16 vertical cut</li><li>Your own backgrounds</li></ul>
+    <a class="primary" href="https://whop.com/getdolly/dolly-lifetime-sub" target="_blank" rel="noopener">Get Pro for $9.99</a>
+    <div class="sub"><a href="#">I have a license key</a><a href="#">Not now</a></div>
+  </div>
+</aside>
+</body>
+</html>
