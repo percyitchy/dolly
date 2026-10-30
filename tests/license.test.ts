@@ -2,6 +2,7 @@
 
 import { spawnSync } from 'node:child_process'
 import { win32 } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { createHash, generateKeyPairSync } from 'node:crypto'
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -461,7 +462,7 @@ describe('IPC handlers', () => {
 
 describe('generate-license-keys.mjs', () => {
   it('prints a keypair that works from the server to the app, and writes nothing', async () => {
-    const script = new URL('../scripts/generate-license-keys.mjs', import.meta.url).pathname
+    const script = fileURLToPath(new URL('../scripts/generate-license-keys.mjs', import.meta.url))
     const run = spawnSync(process.execPath, [script], { encoding: 'utf8', cwd: h.dir })
     expect(run.status).toBe(0)
     const [, publicKey, signingKey] = /config\.ts:\n\n(\S+)\n[\s\S]*nowhere else:\n\n(\S+)\n/.exec(run.stdout) ?? []

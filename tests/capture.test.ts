@@ -1,7 +1,7 @@
 import { existsSync } from 'node:fs'
 import { mkdtemp, mkdir, readdir, readFile, rm, symlink, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { join, resolve } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { CURSOR_DEFAULTS, outputSize, type CursorEvent, type Project } from '../src/shared/project'
 
@@ -847,8 +847,8 @@ describe('path checks', () => {
   const root = '/Users/me/Movies/Dolly'
 
   it('accepts a project folder directly under the root', () => {
-    expect(checkProjectDir(root, `${root}/Demo.dolly`)).toBe(`${root}/Demo.dolly`)
-    expect(checkProjectDir(root, `${root}/x/../Demo.dolly`)).toBe(`${root}/Demo.dolly`)
+    expect(checkProjectDir(root, `${root}/Demo.dolly`)).toBe(resolve(`${root}/Demo.dolly`))
+    expect(checkProjectDir(root, `${root}/x/../Demo.dolly`)).toBe(resolve(`${root}/Demo.dolly`))
   })
 
   it.each([
@@ -1075,7 +1075,7 @@ describe('media scheme', () => {
   it('round-trips names with spaces and unicode', () => {
     const url = mediaUrlFor(root, `${root}/My Demo é.dolly`, 'backgrounds/a b.png')
     expect(url).toBe('dolly-media://project/My%20Demo%20%C3%A9.dolly/backgrounds/a%20b.png')
-    expect(mediaFromUrl(root, url)).toEqual({ dir: `${root}/My Demo é.dolly`, file: 'backgrounds/a b.png' })
+    expect(mediaFromUrl(root, url)).toEqual({ dir: resolve(`${root}/My Demo é.dolly`), file: 'backgrounds/a b.png' })
   })
 
   it.each([

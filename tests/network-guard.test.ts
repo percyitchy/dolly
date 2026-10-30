@@ -367,7 +367,7 @@ describe('nothing in the app goes around the guard', () => {
     const mainFiles = sources(join(srcRoot, 'main')).filter((path) => /(?<![\w.])fetch\(/.test(code(path)))
     expect(mainFiles).toEqual([])
     const usesNet = sources(join(srcRoot, 'main')).filter((path) => /\bnet\.(?:fetch|request)\(/.test(code(path)))
-    expect(usesNet.map((path) => path.split('/').pop()).sort()).toEqual(['license.ts', 'network-guard.ts'])
+    expect(usesNet.map((path) => basename(path)).sort()).toEqual(['license.ts', 'network-guard.ts'])
   })
 
   it('reads the dev server variable only through a packaged check', () => {
