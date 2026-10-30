@@ -33,7 +33,7 @@ vi.mock('electron', () => ({
 
 vi.mock('node:child_process', async (original) => ({
   ...(await original<typeof import('node:child_process')>()),
-  execFileSync: () => `| "IOPlatformUUID" = "${h.machineId}"\n`
+  execFileSync: () => `| "IOPlatformUUID" = "${h.machineId}"\n    MachineGuid    REG_SZ    ${h.machineId}\n`
 }))
 
 vi.mock('../src/main/paths', () => ({ licenseFile: () => join(h.dir, 'license.json') }))

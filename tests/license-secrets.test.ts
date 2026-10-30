@@ -71,7 +71,7 @@ describe('A7', () => {
   })
 
   it('stops env files reaching git', () => {
-    expect(readFileSync(join(root, '.gitignore'), 'utf8').split('\n')).toContain('.env*')
+    expect(readFileSync(join(root, '.gitignore'), 'utf8').split(/\r?\n/)).toContain('.env*')
     expect(walk(root).filter((path) => basename(path).startsWith('.env'))).toEqual([])
   })
 
