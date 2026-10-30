@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Dolly</title>
-<meta name="description" content="Dolly is a free, open-source screen recorder for Mac that zooms in on every click and smooths your cursor.">
+<meta name="description" content="Dolly is a free, open-source screen recorder for Mac and Windows that zooms in on every click and smooths your cursor.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap">
@@ -141,7 +141,6 @@ h2 { font: 750 clamp(30px, 4.2vw, 48px)/1.02 var(--display); letter-spacing: -.0
 .plat ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 6px; color: var(--muted); font-size: 14.5px; }
 .plat ul li::before { content: "·"; margin-right: 8px; color: var(--ink); }
 .plat .btn { align-self: flex-start; }
-.plat .soon { font: 500 13px/1 var(--mono); color: var(--muted); margin-top: auto; }
 .build { margin-top: 16px; display: flex; align-items: center; gap: 12px; background: var(--ink); color: var(--bg); border-radius: 14px; padding: 14px 14px 14px 18px; }
 .build code { font: 400 13.5px/1.5 var(--mono); overflow-x: auto; white-space: nowrap; flex: 1; min-width: 0; }
 .build button { flex: 0 0 auto; font: 600 13px/1 var(--body); background: transparent; color: var(--bg); border: 1px solid color-mix(in srgb, var(--bg) 35%, transparent); border-radius: 9px; padding: 9px 12px; cursor: pointer; }
@@ -212,15 +211,16 @@ footer .right { margin-left: auto; display: flex; gap: 20px; }
   <div class="wrap">
     <div class="hero">
       <div>
-        <div class="rec"><b aria-hidden="true"></b><span>Free</span> · open source · Mac</div>
+        <div class="rec"><b aria-hidden="true"></b><span>Free</span> · open source · Mac + Windows</div>
         <h1>Screen recordings that <em>zoom themselves.</em></h1>
       </div>
       <div>
         <p class="lede">Record your screen like you always do. Dolly zooms in on every click, follows your cursor like a camera on rails and exports a video that looks edited.</p>
         <div class="cta">
           <a class="btn primary" data-release href="#"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M16.4 12.6c0-2.4 2-3.6 2.1-3.7-1.2-1.7-3-1.9-3.6-2-1.5-.2-3 .9-3.8.9-.8 0-2-.9-3.3-.8-1.7 0-3.3 1-4.2 2.5-1.8 3.1-.5 7.7 1.3 10.2.9 1.2 1.9 2.6 3.2 2.6 1.3-.1 1.8-.8 3.3-.8 1.6 0 2 .8 3.3.8 1.4 0 2.3-1.3 3.1-2.5 1-1.4 1.4-2.8 1.4-2.9 0 0-2.8-1-2.8-4.3zM13.9 5.2c.7-.8 1.2-2 1-3.2-1 .1-2.2.7-3 1.5-.6.7-1.2 1.9-1 3.1 1.1.1 2.3-.6 3-1.4z"/></svg>Download for Mac</a>
+          <a class="btn" data-release href="#"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M3 5.1 10.4 4v7.2H3V5.1zm0 13.8 7.4 1.1v-7.1H3v6zm8.3 1.2L21 21.5v-8.6h-9.7v7.2zm0-16.2v7.3H21V2.5l-9.7 1.4z"/></svg>Download for Windows</a>
         </div>
-        <div class="fine">MIT license · no account · no watermark · Windows soon</div>
+        <div class="fine">MIT license · no account · no watermark</div>
       </div>
     </div>
 
@@ -301,8 +301,8 @@ footer .right { margin-left: auto; display: flex; gap: 20px; }
 
   <section id="download" class="wrap">
     <div class="kicker">Download</div>
-    <h2>On your Mac today.</h2>
-    <p class="sub">Dolly is one Electron and React codebase. The Mac version is ready now, and the Windows version comes next.</p>
+    <h2>One app, both computers.</h2>
+    <p class="sub">The same Electron and React codebase builds the Mac and Windows versions on every release.</p>
     <div class="platforms">
       <div class="plat">
         <h4>macOS</h4>
@@ -311,8 +311,8 @@ footer .right { margin-left: auto; display: flex; gap: 20px; }
       </div>
       <div class="plat">
         <h4>Windows</h4>
-        <ul><li>Windows 10 and 11</li><li>x64</li></ul>
-        <span class="soon">Coming soon</span>
+        <ul><li>Windows 10 and 11</li><li>x64</li><li>Not signed yet, so <a data-readme href="#">SmartScreen asks once</a></li></ul>
+        <a class="btn primary" data-release href="#">Download .exe</a>
       </div>
     </div>
     <div class="build">
@@ -355,8 +355,8 @@ footer .right { margin-left: auto; display: flex; gap: 20px; }
     <div class="faq">
       <details open><summary>Is it really free?</summary><p>Yes. Recording, auto-zoom, smooth cursor and 1080p export are free forever, and the code is MIT licensed. Pro is a one-time $9.99 for 4K, 60 fps, captions, webcam, GIF export and the vertical cut.</p></details>
       <details><summary>How do I activate Pro?</summary><p>After you pay you get a license key on Whop. Paste it in Settings once, and Pro keeps working offline. One key works on up to 3 devices.</p></details>
-      <details><summary>Which permissions does it need?</summary><p>On a Mac you allow Screen Recording, Input Monitoring and the microphone once in System Settings. macOS's wording mentions keystrokes, but Dolly only asks for mouse events, so it never sees what you type.</p></details>
-      <details><summary>Why does macOS warn me when I open it?</summary><p>The build isn't signed by Apple yet. The README shows the one extra step to open it. Until it's signed, macOS may ask for permissions again after an update.</p></details>
+      <details><summary>Which permissions does it need?</summary><p>On a Mac you allow Screen Recording, Input Monitoring and the microphone once in System Settings. macOS's wording mentions keystrokes, but Dolly only asks for mouse events, so it never sees what you type. On Windows you only allow the microphone.</p></details>
+      <details><summary>Why does my computer warn me when I open it?</summary><p>The builds aren't signed yet. The README shows the one extra step on Mac and Windows. Until they're signed, macOS may ask for permissions again after an update.</p></details>
       <details><summary>Can I edit the zooms?</summary><p>Every zoom is a block on the timeline. Drag it, stretch it, change the zoom level or delete it.</p></details>
       <details><summary>How was it built?</summary><p>With Claude Code on Opus 5.5. The full source is on GitHub.</p></details>
     </div>
