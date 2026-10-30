@@ -3,488 +3,1253 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
 <title>Dolly</title>
 <meta name="description" content="Dolly is a free, open-source screen recorder for Mac and Windows that zooms in on every click and smooths your cursor.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap">
+<script>
+/* anim hides things until the main script reveals them, so it is dropped again if that script never finishes */
+(function (r) {
+  r.classList.add("js");
+  if (matchMedia("(prefers-reduced-motion: reduce)").matches || !("IntersectionObserver" in window)) return;
+  r.classList.add("anim");
+  setTimeout(function () { if (!r.classList.contains("ready")) r.classList.remove("anim", "pin-on"); }, 3000);
+})(document.documentElement);
+</script>
 <style>
-/* Layout: an editing-suite page. Left-aligned display type, then a live "recording" that zooms itself, then a spec sheet. */
 :root {
-  --bg: #ECEEF1;
+  --white: #FFFFFF;
+  --paper: #F6F2EA;
   --surface: #FFFFFF;
   --ink: #0F1217;
-  --muted: #5A616E;
-  --line: #D4D8DF;
-  --tally: #F0432A;          /* the camera's REC light */
-  --zoom: #2D63F5;           /* zoom segments on the timeline */
-  --track: #E3E6EB;
-  --shadow: 0 1px 0 rgba(15,18,23,.04), 0 18px 50px -24px rgba(15,18,23,.35);
+  --muted: #5C6068;
+  --line: #E0DBD0;
+  --track: #ECE8DF;
+  --tally: #F0432A;
+  --tally-ink: #CF3019;
+  --zoom: #2D63F5;
+  --cap: #0F1217;
+  --shadow: 0 1px 0 rgba(15,18,23,.04), 0 24px 60px -28px rgba(15,18,23,.4);
+  --mist-0: #FBF6EE; --mist-1: #FF9E85; --mist-2: #8FB0FF; --mist-3: #FFD9A8;
   /* the recorded app is a picture of a screen, so it keeps one look in both themes */
   --app-bg: #FFFFFF; --app-side: #F5F6F8; --app-ink: #16191F; --app-muted: #7A808C; --app-line: #E4E7EC; --app-check: #2D63F5;
   --wall-a: #FF8A5B; --wall-b: #6B5BFF; --wall-c: #1C2540;
   --display: "Bricolage Grotesque", "Arial Narrow", system-ui, sans-serif;
   --body: "Geist", system-ui, -apple-system, "Segoe UI", sans-serif;
   --mono: "Geist Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --out: cubic-bezier(.16, 1, .3, 1);
+  --gutter: max(16px, min(4vw, 72px), env(safe-area-inset-left, 0px));
+  --sheet: clamp(20px, 2.4vw, 40px);
+  --u: 16px; /* one em of the recorded screen, which is 96em wide */
 }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
-  --bg: #0E1014; --surface: #161A20; --ink: #ECEEF2; --muted: #9AA1AD; --line: #272C35;
-  --tally: #FF5A3D; --zoom: #5585FF; --track: #20252D;
-  --shadow: 0 1px 0 rgba(0,0,0,.3), 0 24px 60px -28px rgba(0,0,0,.8); color-scheme: dark; } }
+  --white: #111419; --paper: #0C0E13; --surface: #181C23; --ink: #ECEEF2; --muted: #9AA1AD; --line: #272C35;
+  --track: #20252D; --tally: #FF5A3D; --tally-ink: #FF6E54; --zoom: #5585FF; --cap: #1A1E26;
+  --shadow: 0 1px 0 rgba(0,0,0,.3), 0 28px 70px -30px rgba(0,0,0,.85);
+  --mist-0: #0B0D12; --mist-1: #7E2414; --mist-2: #1B3A9A; --mist-3: #5A3213; color-scheme: dark; } }
 :root[data-theme="dark"] {
-  --bg: #0E1014; --surface: #161A20; --ink: #ECEEF2; --muted: #9AA1AD; --line: #272C35;
-  --tally: #FF5A3D; --zoom: #5585FF; --track: #20252D;
-  --shadow: 0 1px 0 rgba(0,0,0,.3), 0 24px 60px -28px rgba(0,0,0,.8); color-scheme: dark; }
+  --white: #111419; --paper: #0C0E13; --surface: #181C23; --ink: #ECEEF2; --muted: #9AA1AD; --line: #272C35;
+  --track: #20252D; --tally: #FF5A3D; --tally-ink: #FF6E54; --zoom: #5585FF; --cap: #1A1E26;
+  --shadow: 0 1px 0 rgba(0,0,0,.3), 0 28px 70px -30px rgba(0,0,0,.85);
+  --mist-0: #0B0D12; --mist-1: #7E2414; --mist-2: #1B3A9A; --mist-3: #5A3213; color-scheme: dark; }
 
 * { box-sizing: border-box; }
-body { margin: 0; background: var(--bg); color: var(--ink); font: 400 16px/1.55 var(--body); -webkit-font-smoothing: antialiased; }
-.wrap { max-width: 1120px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+[hidden] { display: none !important; }
+.editor:empty, .frame:empty { display: none; }
+html { overflow-x: clip; -webkit-text-size-adjust: 100%; }
+body { margin: 0; overflow-x: clip; background: var(--white); color: var(--ink); font: 400 clamp(16px, .55vw + 8.5px, 21px)/1.55 var(--body); -webkit-font-smoothing: antialiased; }
+.wrap { width: 100%; max-width: calc(1600px + 2 * var(--gutter)); margin: 0 auto; padding-inline: var(--gutter); }
 a { color: inherit; }
 :focus-visible { outline: 2px solid var(--zoom); outline-offset: 3px; border-radius: 6px; }
+@media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }
 
-/* nav */
-.nav { display: flex; align-items: center; gap: 24px; padding-block: 22px; }
-.logo { display: flex; align-items: center; gap: 10px; font: 700 21px/1 var(--display); letter-spacing: -.02em; text-decoration: none; }
-.logo-mark { width: 26px; height: 26px; border-radius: 8px; background: var(--ink); display: grid; place-items: center; }
-.logo-mark i { width: 9px; height: 9px; border-radius: 50%; background: var(--tally); display: block; }
-.nav-links { display: flex; gap: 22px; margin-left: auto; font-size: 14.5px; color: var(--muted); }
-.nav-links a { text-decoration: none; }
-.nav-links a:hover { color: var(--ink); }
+/* tones: full-bleed colour blocks, each one a sheet sliding over the last */
+.tone { position: relative; background: var(--sec); color: var(--ink); }
+.t-white { --sec: var(--white); }
+.t-paper { --sec: var(--paper); }
+.t-night { --sec: #08090D; --surface: #14171D; --ink: #ECEEF2; --muted: #9AA1AD; --line: #262B34; --track: #20252D; --tally: #FF5A3D; --tally-ink: #FF6E54; --zoom: #5585FF; --cap: #1A1E26; color-scheme: dark; }
+.sheet { margin-top: calc(-1 * var(--sheet)); border-radius: var(--sheet) var(--sheet) 0 0; }
+.sec { padding-block: clamp(84px, 10vw, 190px) clamp(92px, 11vw, 200px); }
+
+/* type */
+.kicker { font: 500 clamp(12px, .85vw, 15px)/1 var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--tally-ink); }
+h2 { font: 750 clamp(36px, 5.6vw, 112px)/1 var(--display); letter-spacing: -.035em; margin: 14px 0 0; text-wrap: balance; font-variation-settings: "opsz" 96; }
+.sub { color: var(--muted); max-width: 54ch; margin: 18px 0 0; font-size: clamp(17px, 1.3vw, 24px); }
+.fine { margin-top: 14px; font: 400 clamp(12.5px, .85vw, 15px)/1.4 var(--mono); color: var(--muted); }
+.pro { display: inline-block; font: 500 10.5px/1 var(--mono); letter-spacing: .06em; text-transform: uppercase; color: #fff; background: var(--tally-ink); border-radius: 5px; padding: 4px 6px; vertical-align: middle; }
+
+/* buttons */
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 9px; height: clamp(46px, 3.6vw, 62px); padding: 0 clamp(18px, 1.5vw, 28px); border-radius: 999px; font: 600 clamp(15px, 1.05vw, 19px)/1 var(--body); text-decoration: none; border: 1px solid var(--line); background: var(--surface); color: var(--ink); transition: transform .25s var(--out); }
+.btn:hover { transform: translateY(-2px); }
+.btn.primary { background: var(--ink); color: var(--sec, #fff); border-color: var(--ink); }
+.btn svg { width: 1.15em; height: 1.15em; flex: 0 0 auto; }
+
+/* the capsule: a thin highlight runs around the rim, and it is a rotation, so it stays on the compositor */
+.capsule { position: relative; display: inline-flex; padding: 1.5px; border-radius: 999px; overflow: hidden; isolation: isolate; text-decoration: none; background: color-mix(in srgb, var(--cap) 72%, #fff); box-shadow: 0 16px 34px -16px color-mix(in srgb, var(--tally) 70%, transparent); transition: transform .3s var(--out); }
+.capsule::before { content: ""; position: absolute; left: 50%; top: 50%; width: 135%; aspect-ratio: 1; transform: translate(-50%, -50%) rotate(40deg); background: conic-gradient(transparent 0 58%, var(--tally) 76%, #fff 87%, var(--zoom) 95%, transparent 100%); }
+.capsule > span { position: relative; display: inline-flex; align-items: center; gap: 10px; height: clamp(50px, 3.9vw, 68px); padding: 0 clamp(22px, 1.9vw, 34px) 0 clamp(18px, 1.5vw, 26px); border-radius: 999px; background: var(--cap); color: #fff; font: 600 clamp(15.5px, 1.1vw, 20px)/1 var(--body); white-space: nowrap; }
+.capsule svg { width: 1.15em; height: 1.15em; flex: 0 0 auto; }
+.capsule i { width: 9px; height: 9px; border-radius: 50%; background: var(--tally); flex: 0 0 auto; }
+.capsule:hover { transform: translateY(-2px) scale(1.015); }
+.capsule:active { transform: scale(.98); }
+.anim .capsule::before { animation: rim 4.2s linear infinite; }
+@keyframes rim { from { transform: translate(-50%, -50%) rotate(0deg); } to { transform: translate(-50%, -50%) rotate(1turn); } }
+
+/* paused off-screen */
+.anim [data-live]:not(.is-live), .anim [data-live]:not(.is-live) *, .anim [data-live]:not(.is-live)::before, .anim [data-live]:not(.is-live) *::before, .anim [data-live]:not(.is-live) *::after { animation-play-state: paused !important; }
+
+/* scroll reveal */
+.anim .rv { opacity: 0; transform: translateY(30px); transition: opacity .9s var(--out), transform .9s var(--out); transition-delay: var(--d, 0ms); }
+.anim .rv-l { transform: translateX(-54px); }
+.anim .rv-r { transform: translateX(54px); }
+.anim .rv-s { transform: translateY(36px) scale(.94); }
+.anim .rv.in { opacity: 1; transform: none; }
+.w { display: inline-block; overflow: clip; padding-bottom: .14em; margin-bottom: -.14em; vertical-align: top; }
+.w > i { display: inline-block; font-style: normal; }
+.anim [data-w] .w > i { transform: translateY(112%); transition: transform 1s var(--out); transition-delay: calc(var(--i) * 55ms); }
+.anim [data-w].in .w > i { transform: none; }
+
+/* playhead progress */
+.pb { display: none; }
+.anim .pb { display: block; position: fixed; inset: 0 0 auto; height: 3px; z-index: 50; pointer-events: none; contain: layout; }
+.pb-mark { position: absolute; top: 0; height: 3px; background: color-mix(in srgb, var(--zoom) 55%, transparent); }
+.pb-fill { position: absolute; inset: 0; background: var(--tally); transform: scaleX(0); transform-origin: 0 0; }
+.pb-head { position: absolute; left: 0; top: 0; }
+.pb-head b { position: absolute; left: 0; top: 6px; transition: opacity .3s; font: 500 10.5px/1 var(--mono); font-variant-numeric: tabular-nums; color: #fff; background: #0F1217; border-radius: 4px; padding: 4px 6px; white-space: nowrap; }
+@media (max-width: 860px) { .pb-head { display: none; } }
 
 /* hero */
-.hero { padding-block: 36px 28px; display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, .75fr); gap: 32px 48px; align-items: end; }
-.rec { display: inline-flex; align-items: center; gap: 9px; font: 500 12.5px/1 var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted);
-  border: 1px solid var(--line); border-radius: 999px; padding: 8px 13px 8px 11px; background: var(--surface); }
+.hero { position: relative; isolation: isolate; overflow: clip; color: var(--ink); background:
+  radial-gradient(48% 42% at 88% 18%, var(--mist-1), transparent 70%),
+  radial-gradient(46% 40% at 6% 56%, var(--mist-2), transparent 72%),
+  radial-gradient(40% 34% at 56% 92%, var(--mist-3), transparent 72%), var(--mist-0); padding-bottom: calc(clamp(56px, 7vw, 120px) + var(--sheet)); }
+#mist { position: absolute; inset: 0; width: 100%; height: 100%; z-index: -1; opacity: 0; transition: opacity 1.4s linear; }
+#mist.on { opacity: 1; }
+.nav { display: flex; align-items: center; gap: 24px; padding-block: clamp(18px, 1.6vw, 30px); position: relative; }
+.logo { display: flex; align-items: center; gap: 10px; font: 700 clamp(21px, 1.5vw, 28px)/1 var(--display); letter-spacing: -.02em; text-decoration: none; }
+.logo-mark { width: 1.24em; height: 1.24em; border-radius: .38em; background: #0F1217; display: grid; place-items: center; }
+.logo-mark i { width: .43em; height: .43em; border-radius: 50%; background: var(--tally); display: block; }
+.nav-links { display: flex; gap: clamp(18px, 1.7vw, 34px); margin-left: auto; font-size: clamp(14.5px, 1vw, 18px); color: var(--ink); }
+.nav-links a { text-decoration: none; opacity: .72; transition: opacity .2s; }
+.nav-links a:hover { opacity: 1; }
+.hero .wrap { max-width: none; padding-inline: max(16px, 4vw); }
+.hero-top { display: flex; flex-direction: column; justify-content: center; gap: clamp(20px, 2.4vw, 44px); min-height: calc(100vh - 170px); min-height: calc(100svh - 170px); padding-block: 12px 28px; }
+.hero-type { transform-origin: 22% 60%; }
+.rec { display: inline-flex; align-items: center; gap: 9px; font: 500 clamp(12.5px, .85vw, 15px)/1 var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); border: 1px solid var(--line); border-radius: 999px; padding: 8px 13px 8px 11px; background: var(--surface); }
 .rec b { width: 8px; height: 8px; border-radius: 50%; background: var(--tally); animation: blink 1.6s steps(1) infinite; }
 .rec span { color: var(--ink); }
 @keyframes blink { 50% { opacity: .25; } }
-h1 { font: 800 clamp(44px, 7.4vw, 92px)/.93 var(--display); letter-spacing: -.045em; margin: 22px 0 0; text-wrap: balance; font-variation-settings: "opsz" 96; }
-h1 em { font-style: normal; color: var(--tally); }
-.lede { font-size: 18px; color: var(--muted); max-width: 40ch; margin: 0 0 22px; }
-.cta { display: flex; flex-wrap: wrap; gap: 10px; }
-.btn { display: inline-flex; align-items: center; gap: 9px; height: 46px; padding: 0 18px; border-radius: 12px; font: 600 15px/1 var(--body); text-decoration: none; border: 1px solid var(--line); background: var(--surface); color: var(--ink); }
-.btn.primary { background: var(--ink); color: var(--bg); border-color: var(--ink); }
-.btn svg { width: 17px; height: 17px; flex: 0 0 auto; }
-.fine { margin-top: 12px; font: 400 12.5px/1.4 var(--mono); color: var(--muted); }
+h1 { font: 800 clamp(52px, min(10.6vw, 22vh), 320px)/.9 var(--display); letter-spacing: -.045em; margin: clamp(16px, 1.6vw, 30px) 0 0; font-variation-settings: "opsz" 96; }
+h1 em { font-style: normal; color: var(--tally-ink); }
+.anim h1 .w > i { animation: rise 1.1s var(--out) both; animation-delay: calc(var(--i) * 70ms + 80ms); }
+@keyframes rise { from { transform: translateY(112%); } }
+.hero-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 20px 56px; align-items: end; }
+.lede { font-size: clamp(18px, 1.5vw, 30px); line-height: 1.42; color: var(--ink); opacity: .82; max-width: 44ch; margin: 0; }
+.cta { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+.anim .hero-row { animation: lift 1s var(--out) .45s both; }
+.anim .rec { animation: lift 1s var(--out) both; }
+.anim .rec b { animation: blink 1.6s steps(1) infinite; }
+@keyframes lift { from { opacity: 0; transform: translateY(18px); } }
+.hero-demo { width: min(100%, calc((100vh - 150px) * 1.78)); margin-inline: auto; transform-origin: 50% 0; }
+.hero-shell { padding-inline: max(16px, 3vw); }
 
-/* editor demo */
-.editor { margin-block: 18px 0; background: var(--surface); border: 1px solid var(--line); border-radius: 18px; box-shadow: var(--shadow); padding: 12px; }
-.frame { position: relative; width: 100%; aspect-ratio: 16 / 9; max-width: 100%; border-radius: 10px; overflow: hidden; background: var(--wall-c); }
-.cam { position: absolute; inset: 0; transform-origin: 0 0; will-change: transform; }
-.wall { position: absolute; inset: 0;
-  background: radial-gradient(60% 80% at 12% 18%, var(--wall-a) 0%, transparent 60%),
-              radial-gradient(55% 70% at 92% 85%, var(--wall-b) 0%, transparent 62%),
-              linear-gradient(140deg, #2A2F5C, var(--wall-c)); }
-.win { position: absolute; left: 7%; top: 8%; right: 7%; bottom: 8%; background: var(--app-bg); border-radius: 10px; overflow: hidden;
-  box-shadow: 0 30px 60px -20px rgba(0,0,0,.55); display: grid; grid-template-rows: 26px 1fr; color: var(--app-ink); font-size: 11px; }
-.titlebar { display: flex; align-items: center; gap: 5px; padding: 0 10px; background: var(--app-side); border-bottom: 1px solid var(--app-line); }
-.titlebar i { width: 8px; height: 8px; border-radius: 50%; background: #FF5F57; }
+/* the recording */
+.editor { background: var(--surface); border: 1px solid var(--line); border-radius: clamp(14px, 1.2vw, 22px); box-shadow: var(--shadow); padding: clamp(8px, .8vw, 14px); min-width: 0; }
+.frame { position: relative; text-align: left; width: 100%; aspect-ratio: 16 / 9; border-radius: clamp(8px, .7vw, 12px); overflow: hidden; background: var(--wall-c); }
+.cam { position: absolute; left: 0; top: 0; width: 96em; height: 54em; font-size: var(--u); transform-origin: 0 0; }
+.is-live .cam, .is-live .cursor, .is-live .ripple { will-change: transform; }
+.wall { position: absolute; inset: 0; background: radial-gradient(62% 62% at 12% 18%, var(--wall-a), transparent 72%), radial-gradient(60% 60% at 92% 85%, var(--wall-b), transparent 72%), linear-gradient(140deg, #2A2F5C, var(--wall-c)); }
+.win-shadow { position: absolute; left: 7%; top: 7%; width: 86%; height: 86%; border-radius: 1.1em; box-shadow: 0 2.4em 5em -1.4em rgba(0,0,0,.6); }
+.win { position: absolute; left: 7%; top: 7%; width: 86%; height: 86%; background: var(--app-bg); border-radius: 1.1em; overflow: hidden; display: grid; grid-template-rows: 2.5em 1fr; color: var(--app-ink); font: 400 1em/1.4 var(--body); }
+.titlebar { display: flex; align-items: center; gap: .5em; padding: 0 1em; background: var(--app-side); border-bottom: 1px solid var(--app-line); }
+.titlebar i { width: .75em; height: .75em; border-radius: 50%; background: #FF5F57; }
 .titlebar i:nth-child(2) { background: #FEBC2E; } .titlebar i:nth-child(3) { background: #28C840; }
-.titlebar span { margin: 0 auto; color: var(--app-muted); font-size: 10px; transform: translateX(-14px); }
+.titlebar span { margin: 0 auto; color: var(--app-muted); font-size: .9em; transform: translateX(-1.4em); }
 .app { display: grid; grid-template-columns: 22% 1fr; min-height: 0; }
-.side { background: var(--app-side); border-right: 1px solid var(--app-line); padding: 12px 10px; display: flex; flex-direction: column; gap: 7px; color: var(--app-muted); }
-.side b { color: var(--app-ink); font-weight: 600; margin-bottom: 4px; }
-.side .on { color: var(--app-ink); background: var(--app-line); border-radius: 5px; margin: 0 -6px; padding: 2px 6px; }
-.doc { padding: 14px 20px; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
-.doc-top { display: flex; align-items: center; gap: 8px; }
-.doc-top h3 { margin: 0; font: 600 15px/1.2 var(--body); letter-spacing: -.01em; }
-.share { margin-left: auto; background: var(--app-ink); color: #fff; border-radius: 6px; padding: 5px 10px; font-weight: 600; font-size: 10.5px; }
+.side { background: var(--app-side); border-right: 1px solid var(--app-line); padding: 1.3em 1em; display: flex; flex-direction: column; gap: .75em; color: var(--app-muted); }
+.side b { color: var(--app-ink); font-weight: 600; margin-bottom: .3em; }
+.side .on { color: var(--app-ink); background: var(--app-line); border-radius: .4em; margin: 0 -.5em; padding: .2em .5em; }
+.doc { padding: 1.6em 2.2em; display: flex; flex-direction: column; gap: .75em; min-width: 0; }
+.doc-top { display: flex; align-items: center; gap: .8em; }
+.doc-top h3 { margin: 0; font: 600 1.55em/1.2 var(--body); letter-spacing: -.01em; }
+.share { margin-left: auto; background: var(--app-ink); color: #fff; border-radius: .5em; padding: .5em 1em; font-weight: 600; font-size: .95em; }
 .share.done { background: #1F9D55; }
-.meta { color: var(--app-muted); font-size: 10px; }
-.task { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 1px solid var(--app-line); }
-.box { width: 13px; height: 13px; border-radius: 4px; border: 1.5px solid #B7BCC6; display: grid; place-items: center; flex: 0 0 auto; }
+.meta { color: var(--app-muted); font-size: .9em; }
+.task { display: flex; align-items: center; gap: .85em; padding: .7em 0; border-bottom: 1px solid var(--app-line); }
+.box { width: 1.25em; height: 1.25em; border-radius: .35em; border: .14em solid #B7BCC6; display: grid; place-items: center; flex: 0 0 auto; }
 .box.done { background: var(--app-check); border-color: var(--app-check); }
-.box.done::after { content: ""; width: 6px; height: 3px; border: solid #fff; border-width: 0 0 1.6px 1.6px; transform: translateY(-1px) rotate(-45deg); }
+.box.done::after { content: ""; width: .58em; height: .3em; border: solid #fff; border-width: 0 0 .15em .15em; transform: translateY(-.08em) rotate(-45deg); }
 .task.done .t { color: var(--app-muted); text-decoration: line-through; }
-.task .who { margin-left: auto; color: var(--app-muted); font-size: 9.5px; }
-.bars { display: flex; gap: 6px; margin-top: 6px; }
-.bars div { flex: 1; height: 34px; border-radius: 6px; background: var(--app-side); border: 1px solid var(--app-line); }
-.cursor { position: absolute; left: 0; top: 0; width: 18px; height: 18px; pointer-events: none; filter: drop-shadow(0 1px 1.5px rgba(0,0,0,.35)); }
-.ripple { position: absolute; width: 30px; height: 30px; margin: -15px 0 0 -15px; border-radius: 50%; border: 2px solid rgba(45,99,245,.9); pointer-events: none; opacity: 0; }
-.cam-badge { position: absolute; right: 12px; top: 12px; font: 500 11px/1 var(--mono); color: #fff; background: rgba(10,12,16,.55); padding: 6px 8px; border-radius: 6px; backdrop-filter: blur(6px); }
+.task .who { margin-left: auto; color: var(--app-muted); font-size: .88em; }
+.bars { display: flex; gap: .6em; flex: 1; min-height: 0; margin-top: .4em; }
+.bars div { flex: 1; border-radius: .6em; background: var(--app-side); border: 1px solid var(--app-line); }
+.cursor { position: absolute; left: 0; top: 0; width: 2em; height: 2em; pointer-events: none; filter: drop-shadow(0 .08em .12em rgba(0,0,0,.35)); }
+.ripple { position: absolute; left: -1.7em; top: -1.7em; width: 3.4em; height: 3.4em; border-radius: 50%; border: .2em solid rgba(45,99,245,.9); pointer-events: none; opacity: 0; }
+.cam-badge { position: absolute; right: 2%; top: 3%; font: 500 clamp(10px, .8vw, 14px)/1 var(--mono); color: #fff; background: rgba(10,12,16,.72); padding: .5em .7em; border-radius: 6px; }
 
-.timeline { padding: 14px 6px 4px; display: grid; grid-template-columns: auto 1fr; gap: 8px 14px; align-items: center; }
-.tc { font: 500 13px/1 var(--mono); font-variant-numeric: tabular-nums; color: var(--ink); white-space: nowrap; }
+.timeline { padding: clamp(12px, 1vw, 18px) 6px 6px; display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 8px 14px; align-items: center; overflow: hidden; }
+.tc { font: 500 13px/1 var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; contain: content; }
 .tc small { color: var(--muted); font-size: 13px; }
 .lane-label { font: 500 10.5px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
 .lanes { position: relative; display: grid; gap: 6px; min-width: 0; }
 .lane { position: relative; height: 22px; border-radius: 6px; background: var(--track); overflow: hidden; }
-.clip { position: absolute; inset: 0; background: repeating-linear-gradient(90deg, color-mix(in srgb, var(--muted) 35%, transparent) 0 2px, transparent 2px 7px); opacity: .55; }
-.seg { position: absolute; top: 0; bottom: 0; border-radius: 6px; background: var(--zoom); color: #fff; font: 500 11px/22px var(--mono); padding-left: 8px; white-space: nowrap; overflow: hidden; }
-.playhead { position: absolute; top: -6px; bottom: -6px; width: 2px; background: var(--tally); border-radius: 1px; left: 0; }
-.playhead::before { content: ""; position: absolute; top: -3px; left: -4px; width: 10px; height: 10px; border-radius: 3px; background: var(--tally); }
+.clip { position: absolute; inset: 0; transform-origin: 0 0; background: repeating-linear-gradient(90deg, color-mix(in srgb, var(--muted) 38%, transparent) 0 2px, transparent 2px 7px); opacity: .6; }
+.seg { position: absolute; top: 0; bottom: 0; border-radius: 6px; overflow: hidden; }
+.seg i { display: block; height: 100%; background: var(--zoom); color: #fff; font: 500 11px/22px var(--mono); padding-left: 8px; white-space: nowrap; }
+.tick { position: absolute; bottom: 3px; width: 5px; height: 5px; margin-left: -2.5px; border-radius: 50%; background: #fff; }
+.anim .pop { opacity: 0; transform: scale(.5, .3); transition: opacity .25s, transform .5s cubic-bezier(.3, 1.7, .5, 1); }
+.anim .pop.on { opacity: 1; transform: none; }
+.playhead { position: absolute; left: 0; right: 0; top: -6px; bottom: -6px; pointer-events: none; }
+.playhead::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 2px; background: var(--tally); border-radius: 1px; }
+.playhead::after { content: ""; position: absolute; left: -4px; top: -3px; width: 10px; height: 10px; border-radius: 3px; background: var(--tally); }
 .labels { display: grid; gap: 6px; }
 .labels span { height: 22px; display: flex; align-items: center; }
 
-/* sections */
-section { padding-block: 72px 0; }
-.kicker { font: 500 12px/1 var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--tally); }
-h2 { font: 750 clamp(30px, 4.2vw, 48px)/1.02 var(--display); letter-spacing: -.035em; margin: 12px 0 0; text-wrap: balance; max-width: 18ch; }
-.sub { color: var(--muted); max-width: 52ch; margin: 14px 0 0; }
+/* pinned stages: stacked blocks by default, sticky once the script takes over */
+.pin-sticky { padding-block: clamp(72px, 9vw, 150px); }
+.pin-on .pin { height: calc(var(--len, 3) * 100vh); }
+.pin-on .pin-sticky { position: sticky; top: 0; height: 100vh; height: 100svh; padding-block: 0; overflow: hidden; display: flex; align-items: center; }
+.pin .wrap { max-width: none; padding-inline: max(16px, 3vw); }
+@media (max-width: 620px), (max-height: 560px) {
+  .pin-on .pin { height: auto; }
+  .pin-on .pin-sticky { position: static; height: auto; padding-block: 72px; overflow: visible; display: block; }
+}
 
-.specs { margin-top: 34px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border-top: 1px solid var(--line); }
-.spec { padding: 22px 22px 26px 0; border-bottom: 1px solid var(--line); display: flex; flex-direction: column; gap: 8px; min-width: 0; }
-.spec + .spec { padding-left: 22px; border-left: 1px solid var(--line); }
-.spec:nth-child(3n+1) { padding-left: 0; border-left: 0; }
-.spec h4 { margin: 0; font: 650 19px/1.2 var(--display); letter-spacing: -.015em; }
-.spec p { margin: 0; color: var(--muted); font-size: 15px; }
-.spec code { font: 500 12px/1 var(--mono); color: var(--ink); background: var(--track); border-radius: 5px; padding: 5px 7px; align-self: flex-start; }
+/* story */
+.story { display: grid; grid-template-columns: minmax(0, 1fr); gap: 32px; width: 100%; }
+.story h2 { font-size: clamp(36px, min(4.6vw, 8.6vh), 104px); }
+.steps { list-style: none; margin: 26px 0 0; padding: 0; display: grid; gap: 22px; }
+.step { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 4px 14px; }
+.step b { font: 500 clamp(12px, .85vw, 15px)/1.9 var(--mono); color: var(--tally-ink); }
+.step h3 { margin: 0; font: 700 clamp(21px, 1.8vw, 36px)/1.15 var(--display); letter-spacing: -.02em; }
+.step p { grid-column: 2; margin: 2px 0 0; color: var(--muted); max-width: 42ch; font-size: clamp(16px, 1.1vw, 21px); }
+.anim .step { transition: opacity .5s; opacity: .42; }
+.anim .step.is-on { opacity: 1; }
+.rail { display: none; }
+.anim .rail { display: flex; align-items: center; gap: 12px; margin-top: 24px; font: 500 12px/1 var(--mono); color: var(--muted); }
+.rail i { flex: 1; max-width: 220px; height: 3px; border-radius: 2px; background: var(--track); overflow: hidden; }
+.rail i b { display: block; height: 100%; background: var(--tally); transform: scaleX(0); transform-origin: 0 0; }
+.ov { position: absolute; inset: 0; z-index: 3; display: grid; place-items: center; background: rgba(9,11,15,.62); color: #fff; }
+.ov-go { display: inline-flex; align-items: center; gap: .7em; padding: .75em 1.3em .75em 1em; border-radius: 999px; background: #0F1217; border: 1px solid rgba(255,255,255,.2); font: 600 clamp(14px, 1.4vw, 24px)/1 var(--body); transition: transform .25s var(--out); }
+.ov-go i { width: .8em; height: .8em; border-radius: 50%; background: var(--tally); }
+.ov-go.down { transform: scale(.92); }
+.ov-n { position: absolute; font: 800 clamp(70px, 12vw, 240px)/1 var(--display); letter-spacing: -.04em; }
+.st-rec { position: absolute; left: 2%; top: 3%; z-index: 2; display: inline-flex; align-items: center; gap: .5em; font: 500 clamp(10px, .8vw, 14px)/1 var(--mono); color: #fff; background: rgba(10,12,16,.72); padding: .5em .7em; border-radius: 6px; }
+.st-rec i { width: .65em; height: .65em; border-radius: 50%; background: var(--tally); animation: blink 1.2s steps(1) infinite; }
+.st-rec.quiet i { animation: none; background: #1F9D55; }
 
-.smooth { margin-top: 34px; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; }
-.pane { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 18px; min-width: 0; }
-.pane svg { width: 100%; height: auto; display: block; }
-.pane-h { display: flex; justify-content: space-between; font: 500 12px/1 var(--mono); color: var(--muted); letter-spacing: .04em; text-transform: uppercase; margin-bottom: 10px; }
+/* morph */
+.morph { display: grid; justify-items: center; text-align: center; gap: clamp(10px, 1.8vh, 22px); width: 100%; }
+.morph h2 { font-size: clamp(38px, min(6.4vw, 10.4vh), 150px); margin: 0; }
+.morph .sub { margin: 0; max-width: 72ch; font-size: clamp(16px, min(1.2vw, 2.2vh), 22px); }
+.m-a { color: var(--tally); }
+.m-stage { position: relative; width: min(100%, calc((100vh - 350px) * 1.78)); }
+.m-glow { position: absolute; left: -24%; right: -24%; top: -34%; bottom: -34%; background: radial-gradient(closest-side, rgba(255,120,80,.34), rgba(70,90,255,.14) 58%, transparent 80%); pointer-events: none; }
+.m-stage .frame { background: #14171D; box-shadow: 0 0 0 1px var(--line); }
+.m-tag { position: absolute; right: 2%; top: 3%; z-index: 2; font: 500 clamp(10px, .8vw, 14px)/1 var(--mono); color: #fff; background: rgba(10,12,16,.72); padding: .5em .7em; border-radius: 6px; }
+.m-lane { width: min(100%, calc((100vh - 350px) * 1.78)); display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 14px; align-items: center; text-align: left; }
+.m-chips { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+.m-chips li { font: 500 clamp(11.5px, .85vw, 14px)/1 var(--mono); color: var(--muted); border: 1px solid var(--line); border-radius: 999px; padding: 8px 12px; }
+.anim .m-chips li { transition: color .3s, border-color .3s, background-color .3s; }
+.m-chips li.on { color: #fff; border-color: var(--tally); background: color-mix(in srgb, var(--tally) 24%, transparent); }
 
-.platforms { margin-top: 34px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
-.plat { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 24px; display: flex; flex-direction: column; gap: 14px; min-width: 0; }
-.plat h4 { margin: 0; font: 700 26px/1 var(--display); letter-spacing: -.03em; }
-.plat ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 6px; color: var(--muted); font-size: 14.5px; }
-.plat ul li::before { content: "·"; margin-right: 8px; color: var(--ink); }
-.plat .btn { align-self: flex-start; }
-.build { margin-top: 16px; display: flex; align-items: center; gap: 12px; background: var(--ink); color: var(--bg); border-radius: 14px; padding: 14px 14px 14px 18px; }
-.build code { font: 400 13.5px/1.5 var(--mono); overflow-x: auto; white-space: nowrap; flex: 1; min-width: 0; }
-.build button { flex: 0 0 auto; font: 600 13px/1 var(--body); background: transparent; color: var(--bg); border: 1px solid color-mix(in srgb, var(--bg) 35%, transparent); border-radius: 9px; padding: 9px 12px; cursor: pointer; }
+/* cursor scope */
+.scope-grid { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 8fr); gap: clamp(32px, 5vw, 96px); align-items: center; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 24px; }
+.chips code { font: 500 clamp(12px, .85vw, 14px)/1 var(--mono); background: var(--track); border-radius: 6px; padding: 7px 9px; }
+.scope { background: #0D0F14; border-radius: clamp(14px, 1.2vw, 22px); box-shadow: var(--shadow); padding: clamp(12px, 1.4vw, 24px); color: #fff; min-width: 0; }
+.scope svg { display: block; width: 100%; height: auto; }
+.scope-h { display: flex; flex-wrap: wrap; gap: 8px 22px; padding: 2px 4px 12px; font: 500 12px/1 var(--mono); letter-spacing: .04em; text-transform: uppercase; color: #A6ADB9; }
+.scope-h span::before { content: ""; display: inline-block; width: 16px; height: 3px; border-radius: 2px; margin-right: 8px; vertical-align: middle; background: currentColor; }
+.scope-h .a { color: #A6ADB9; } .scope-h .b { color: #7FA3FF; }
+.sc-raw { fill: none; stroke: #8E95A3; stroke-width: 2; stroke-linejoin: round; }
+.sc-smooth { fill: none; stroke: #5585FF; stroke-width: 4.5; stroke-linecap: round; stroke-linejoin: round; }
+.sc-hit { fill: none; stroke: #FF5A3D; stroke-width: 2.5; opacity: .35; transition: opacity .3s; }
+.sc-hit.on { opacity: 1; }
+@media (max-width: 620px) { .sc-raw { stroke-width: 3; } .sc-smooth { stroke-width: 6.5; } }
 
-.promise { margin-top: 34px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 32px; }
+/* three-up */
+.three { display: grid; gap: clamp(20px, 3vh, 44px); width: 100%; max-width: calc(1600px + 2 * var(--gutter)); margin-inline: auto; }
+.three-h { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 12px 48px; }
+.three-h h2 { font-size: clamp(36px, min(5.2vw, 9vh), 112px); }
+.three-h .sub { margin: 0 0 6px; }
+.tu { position: relative; display: grid; grid-template-columns: 16fr 9fr 5.0625fr; gap: clamp(12px, 1.4vw, 28px); align-items: end; }
+.tu-f { min-width: 0; position: relative; }
+.tu-f.a { z-index: 3; } .tu-f.b { z-index: 2; } .tu-f.c { z-index: 1; }
+.is-live .tu-f { will-change: transform; }
+.tu .frame { box-shadow: var(--shadow); }
+.f11 { aspect-ratio: 1 / 1 !important; } .f916 { aspect-ratio: 9 / 16 !important; }
+.tu-l { display: flex; align-items: center; gap: 8px; margin-top: 10px; font: 500 clamp(12px, .85vw, 15px)/1 var(--mono); color: var(--muted); }
+.tick-box { width: 14px; height: 14px; border-radius: 4px; background: var(--zoom); display: grid; place-items: center; flex: 0 0 auto; }
+.tick-box::after { content: ""; width: 7px; height: 3px; border: solid #fff; border-width: 0 0 1.6px 1.6px; transform: translateY(-1px) rotate(-45deg); }
+.tick-box.off { background: transparent; border: 1.5px solid var(--muted); } .tick-box.off::after { display: none; }
+.three-tl { max-width: 980px; width: 100%; }
+.three-tl .timeline { padding: 0; }
+.three-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 40px; }
+.three-foot .fine { margin: 0; }
+
+/* gallery */
+.bento { margin-top: clamp(32px, 4vw, 72px); display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: clamp(12px, 1.2vw, 24px); }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: clamp(16px, 1.3vw, 26px); padding: clamp(12px, 1vw, 18px); display: flex; flex-direction: column; min-width: 0; }
+.card.big { grid-column: span 7; } .card.small { grid-column: span 5; }
+.vis { position: relative; flex: 1; min-height: clamp(220px, 21vw, 420px); border-radius: clamp(10px, .8vw, 16px); overflow: hidden; background: var(--wall-c); isolation: isolate; }
+.card-t { padding: clamp(16px, 1.3vw, 24px) clamp(8px, .8vw, 14px) clamp(10px, .7vw, 14px); }
+.card-t h3 { margin: 0; display: flex; align-items: center; gap: 10px; font: 700 clamp(23px, 1.9vw, 38px)/1.1 var(--display); letter-spacing: -.02em; }
+.card-t p { margin: 8px 0 0; color: var(--muted); max-width: 52ch; font-size: clamp(15.5px, 1.05vw, 20px); }
+.mw { position: absolute; inset: 13% 12%; background: #fff; border-radius: 9px; box-shadow: 0 22px 40px -18px rgba(0,0,0,.55); padding: 7% 6%; display: grid; align-content: start; gap: 9%; }
+.mw i { display: block; height: 7px; border-radius: 4px; background: #E4E7EC; }
+.mw i:nth-child(1) { width: 44%; height: 12px; background: #16191F; }
+.mw i:nth-child(3) { width: 82%; } .mw i:nth-child(4) { width: 66%; }
+
+.cap { position: absolute; left: 50%; bottom: 9%; width: max-content; max-width: 88%; transform: translateX(-50%); text-align: center; background: rgba(8,9,13,.84); color: #fff; border-radius: 9px; padding: .45em .8em; font: 600 clamp(15px, 1.5vw, 28px)/1.3 var(--body); }
+.cap span { display: inline-block; }
+.anim .cap span { animation: word 7s var(--out) infinite; animation-delay: calc(var(--i) * .33s); }
+@keyframes word { 0% { opacity: 0; transform: translateY(.35em); } 5%, 74% { opacity: 1; transform: none; } 80%, 100% { opacity: 0; } }
+.mic { position: absolute; left: 6%; top: 8%; display: flex; align-items: center; gap: 3px; height: 26px; padding: 0 9px; background: rgba(8,9,13,.75); border-radius: 7px; }
+.mic i { width: 3px; height: 15px; border-radius: 2px; background: #fff; }
+.mic i:nth-child(even) { transform: scaleY(.5); }
+.anim .mic i { animation: mic 1.1s ease-in-out infinite alternate; animation-delay: calc(var(--i) * -.21s); }
+@keyframes mic { from { transform: scaleY(.25); } to { transform: scaleY(1); } }
+
+.push { position: absolute; inset: 0; transform-origin: 34% 46%; }
+.anim .push { animation: push 6s cubic-bezier(.65, 0, .35, 1) infinite; }
+@keyframes push { 0%, 12%, 88%, 100% { transform: none; } 30%, 70% { transform: scale(1.7); } }
+.bubble { position: absolute; right: 6%; bottom: 8%; width: clamp(84px, 26%, 170px); aspect-ratio: 1; border-radius: 50%; overflow: hidden; border: 3px solid #fff; background: linear-gradient(160deg, #F6C9A8, #B9A6E0); box-shadow: 0 12px 26px -10px rgba(0,0,0,.6); transform-origin: 100% 100%; }
+.bubble svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.anim .bubble { animation: shrink 6s cubic-bezier(.65, 0, .35, 1) infinite; }
+@keyframes shrink { 0%, 12%, 88%, 100% { transform: none; } 30%, 70% { transform: scale(.67); } }
+.zb { position: absolute; left: 5%; top: 7%; display: grid; font: 500 12px/1 var(--mono); color: #fff; background: rgba(10,12,16,.72); border-radius: 6px; padding: 6px 8px; }
+.zb span { grid-area: 1 / 1; }
+.zb span + span { opacity: 0; }
+.anim .zb span { animation: zb-a 6s linear infinite; }
+.anim .zb span + span { animation-name: zb-b; }
+@keyframes zb-a { 0%, 22%, 76%, 100% { opacity: 1; } 26%, 72% { opacity: 0; } }
+@keyframes zb-b { 0%, 22%, 76%, 100% { opacity: 0; } 26%, 72% { opacity: 1; } }
+
+.wp { position: absolute; inset: 0; opacity: 0; }
+.wp:first-child { opacity: 1; }
+.anim .wp { animation: wp 16s linear infinite; animation-delay: calc(var(--i) * 2s); opacity: 0; }
+@keyframes wp { 0% { opacity: 0; } 4%, 12.5% { opacity: 1; } 16.5%, 100% { opacity: 0; } }
+.wp-dusk { background: radial-gradient(62% 62% at 12% 18%, #FF8A5B, transparent), radial-gradient(60% 60% at 92% 85%, #6B5BFF, transparent), linear-gradient(135deg, #2A2F5C, #1C2540); }
+.wp-dawn { background: radial-gradient(70% 70% at 85% 10%, #FFE3B0, transparent), radial-gradient(60% 60% at 10% 95%, #F08FA8, transparent), linear-gradient(135deg, #F6C9A8, #B9A6E0); }
+.wp-ocean { background: radial-gradient(70% 70% at 20% 85%, #1FB5C4, transparent), radial-gradient(55% 55% at 90% 15%, #2D63F5, transparent), linear-gradient(135deg, #0D3B66, #071E33); }
+.wp-forest { background: radial-gradient(65% 65% at 15% 20%, #3F9B6C, transparent), radial-gradient(55% 55% at 88% 90%, #C9B458, transparent), linear-gradient(135deg, #14342B, #0B1F1A); }
+.wp-ember { background: radial-gradient(65% 65% at 80% 20%, #FF5B3A, transparent), radial-gradient(60% 60% at 15% 90%, #FFB347, transparent), linear-gradient(135deg, #3B1420, #1C0B12); }
+.wp-orchid { background: radial-gradient(60% 60% at 20% 15%, #E05BD3, transparent), radial-gradient(65% 65% at 85% 80%, #5B8CFF, transparent), linear-gradient(135deg, #3A1F5C, #1E1238); }
+.wp-slate { background: radial-gradient(80% 80% at 50% 0, #6C7A91, transparent), linear-gradient(135deg, #39414F, #1B1F27); }
+.wp-paper { background: radial-gradient(60% 60% at 10% 10%, #FFFFFF, transparent), radial-gradient(55% 55% at 95% 95%, #C7D2E5, transparent), linear-gradient(135deg, #F5F6F8, #DDE1E8); }
+.vis .mw.tight { z-index: 1; inset: 16% 18%; }
+.wp-names { position: absolute; left: 4%; bottom: 6%; z-index: 2; display: grid; font: 500 12px/1 var(--mono); color: #fff; background: rgba(10,12,16,.72); border-radius: 6px; padding: 6px 8px; }
+.wp-names span { grid-area: 1 / 1; opacity: 0; }
+.wp-names span:first-child { opacity: 1; }
+.anim .wp-names span { animation: wp 16s linear infinite; animation-delay: calc(var(--i) * 2s); opacity: 0; }
+
+.vis.exp { background: #101319; color: #fff; display: flex; flex-direction: column; justify-content: center; gap: clamp(14px, 1.3vw, 24px); padding: clamp(18px, 2.4vw, 44px); }
+.exp-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px 12px; align-items: center; font: 500 clamp(12px, .95vw, 17px)/1.3 var(--mono); min-width: 0; }
+.exp-row span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.exp-bar { grid-column: 1 / -1; height: 7px; border-radius: 4px; background: #262B34; overflow: hidden; }
+.exp-bar i { display: block; height: 100%; background: var(--zoom); transform-origin: 0 0; }
+.exp-ok { width: 18px; height: 18px; border-radius: 50%; background: #1F9D55; display: grid; place-items: center; }
+.exp-ok::after { content: ""; width: 8px; height: 4px; border: solid #fff; border-width: 0 0 2px 2px; transform: translateY(-1px) rotate(-45deg); }
+.exp-done { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; font: 500 clamp(12px, .95vw, 17px)/1.2 var(--mono); color: #A6ADB9; }
+.exp-done b { font-weight: 500; color: #fff; border: 1px solid #333A45; border-radius: 7px; padding: 7px 10px; }
+.anim .r1 .exp-bar i { animation: bar1 9s cubic-bezier(.4, 0, .6, 1) infinite; }
+.anim .r2 .exp-bar i { animation: bar2 9s cubic-bezier(.4, 0, .6, 1) infinite; }
+.anim .r1 .exp-ok { animation: ok1 9s var(--out) infinite; }
+.anim .r2 .exp-ok { animation: ok2 9s var(--out) infinite; }
+.anim .exp-done { animation: fade-done 9s linear infinite; }
+@keyframes bar1 { 0%, 3% { transform: scaleX(0); } 36%, 94% { transform: none; } 100% { transform: none; opacity: 0; } }
+@keyframes bar2 { 0%, 37% { transform: scaleX(0); } 70%, 94% { transform: none; } 100% { transform: none; opacity: 0; } }
+@keyframes ok1 { 0%, 36% { transform: scale(0); } 41%, 94% { transform: none; } 100% { transform: scale(0); } }
+@keyframes ok2 { 0%, 70% { transform: scale(0); } 75%, 94% { transform: none; } 100% { transform: scale(0); } }
+@keyframes fade-done { 0%, 72% { opacity: 0; transform: translateY(8px); } 77%, 94% { opacity: 1; transform: none; } 100% { opacity: 0; } }
+
+/* privacy */
+.priv { position: relative; overflow: clip; }
+.priv-grid { display: grid; grid-template-columns: minmax(0, 8fr) minmax(0, 7fr); gap: clamp(32px, 6vw, 120px); align-items: center; }
+.priv h2 { font-size: clamp(40px, 6.6vw, 136px); }
+.disk { position: relative; width: min(100%, 860px); aspect-ratio: 1; margin-inline: auto; border-radius: 50%; overflow: hidden; background: repeating-radial-gradient(circle, rgba(255,255,255,.07) 0 1px, transparent 1px 22px), radial-gradient(circle, #1A1E26, #0B0D12 72%); box-shadow: 0 0 0 1px #262B34; }
+.disk-sweep { position: absolute; inset: 0; background: conic-gradient(from 0deg, transparent 0 74%, rgba(255,90,61,.05) 76%, rgba(255,90,61,.42) 100%); transform: rotate(120deg); }
+.anim .disk-sweep { animation: sweep 7s linear infinite; }
+@keyframes sweep { from { transform: rotate(0); } to { transform: rotate(1turn); } }
+.disk-light { position: absolute; left: 50%; top: 50%; width: 30%; aspect-ratio: 1; margin: -15% 0 0 -15%; border-radius: 50%; background: radial-gradient(circle, rgba(255,90,61,.55), transparent 70%); }
+.disk-dot { position: absolute; left: 50%; top: 50%; width: 9%; aspect-ratio: 1; margin: -4.5% 0 0 -4.5%; border-radius: 50%; background: #FF5A3D; }
+.anim .disk-light { animation: glow 2.4s ease-in-out infinite alternate; }
+@keyframes glow { from { opacity: .35; transform: scale(.82); } to { opacity: 1; transform: scale(1.12); } }
+.promise { margin-top: clamp(40px, 5vw, 96px); display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: clamp(24px, 3vw, 56px); }
 .promise div { border-top: 2px solid var(--ink); padding-top: 14px; }
-.promise h4 { margin: 0 0 6px; font: 700 22px/1.1 var(--display); letter-spacing: -.02em; }
-.promise p { margin: 0; color: var(--muted); font-size: 15px; }
+.promise h4 { margin: 0 0 6px; font: 700 clamp(22px, 1.9vw, 36px)/1.1 var(--display); letter-spacing: -.02em; }
+.promise p { margin: 0; color: var(--muted); font-size: clamp(15px, 1.05vw, 20px); }
 
-.faq { margin-top: 26px; border-top: 1px solid var(--line); max-width: 760px; }
-.faq details { border-bottom: 1px solid var(--line); padding: 18px 0; }
-.faq summary { cursor: pointer; font: 600 17px/1.3 var(--body); list-style: none; display: flex; justify-content: space-between; gap: 16px; }
-.faq summary::-webkit-details-marker { display: none; }
-.faq summary::after { content: "+"; font: 400 22px/1 var(--mono); color: var(--muted); }
-.faq details[open] summary::after { content: "−"; }
-.faq p { margin: 10px 0 0; color: var(--muted); max-width: 62ch; }
-
-.plans { margin-top: 34px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; max-width: 860px; }
-.plan { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 24px; display: flex; flex-direction: column; gap: 16px; min-width: 0; }
-.plan.pro { border: 2px solid var(--ink); }
+/* pricing and download */
+.plans, .platforms { margin-top: clamp(32px, 4vw, 72px); display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: clamp(12px, 1.4vw, 28px); }
+.plan, .plat { background: var(--surface); border: 1px solid var(--line); border-radius: clamp(16px, 1.3vw, 26px); padding: clamp(22px, 2.4vw, 48px); display: flex; flex-direction: column; gap: clamp(14px, 1.4vw, 26px); min-width: 0; }
+.plan.pro-plan { border: 2px solid var(--ink); }
 .plan-h { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
-.plan h4 { margin: 0; font: 700 26px/1 var(--display); letter-spacing: -.03em; }
-.price { font: 750 34px/1 var(--display); letter-spacing: -.03em; }
-.price small { font: 400 13px/1 var(--mono); color: var(--muted); letter-spacing: 0; }
-.plan ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 8px; font-size: 15px; color: var(--muted); }
-.plan ul li::before { content: "✓"; color: var(--tally); margin-right: 10px; font-weight: 600; }
-.plan .btn { align-self: flex-start; margin-top: auto; }
-@media (max-width: 620px) { .plans { grid-template-columns: 1fr; } }
-footer { margin-top: 90px; border-top: 1px solid var(--line); }
-footer .wrap { display: flex; flex-wrap: wrap; gap: 12px 24px; align-items: center; padding-block: 26px 40px; font-size: 14px; color: var(--muted); }
+.plan h4, .plat h4 { margin: 0; font: 700 clamp(26px, 2.4vw, 48px)/1 var(--display); letter-spacing: -.03em; }
+.price { font: 750 clamp(34px, 4vw, 84px)/1 var(--display); letter-spacing: -.03em; white-space: nowrap; }
+.price small { font: 400 clamp(13px, .9vw, 16px)/1 var(--mono); color: var(--muted); letter-spacing: 0; }
+.plan ul, .plat ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 8px; color: var(--muted); font-size: clamp(15px, 1.1vw, 21px); }
+.plan ul li::before { content: "✓"; color: var(--tally-ink); margin-right: 10px; font-weight: 600; }
+.plat ul li::before { content: "·"; margin-right: 8px; color: var(--ink); }
+.plan .btn, .plat .btn { align-self: flex-start; margin-top: auto; }
+.build { margin-top: clamp(12px, 1.4vw, 28px); display: flex; align-items: center; gap: 12px; background: #0F1217; color: #ECEEF2; border-radius: 14px; padding: 14px 14px 14px 18px; }
+.build code { font: 400 clamp(13.5px, .95vw, 17px)/1.5 var(--mono); overflow-x: auto; white-space: nowrap; flex: 1; min-width: 0; }
+.build button { flex: 0 0 auto; font: 600 13px/1 var(--body); background: transparent; color: inherit; border: 1px solid rgba(255,255,255,.3); border-radius: 9px; padding: 9px 12px; cursor: pointer; }
+
+/* faq */
+.faq-grid { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 8fr); gap: clamp(24px, 5vw, 96px); align-items: start; }
+.faq { border-top: 1px solid var(--line); }
+.faq details { border-bottom: 1px solid var(--line); padding: clamp(18px, 1.5vw, 28px) 0; }
+.faq summary { cursor: pointer; font: 600 clamp(17px, 1.3vw, 25px)/1.3 var(--body); list-style: none; display: flex; justify-content: space-between; gap: 16px; }
+.faq summary::-webkit-details-marker { display: none; }
+.faq summary::after { content: "+"; font: 400 1.3em/1 var(--mono); color: var(--muted); }
+.faq details[open] summary::after { content: "−"; }
+.faq p { margin: 10px 0 0; color: var(--muted); max-width: 66ch; }
+
+/* finale */
+.fin { position: relative; overflow: clip; min-height: 100vh; min-height: 100svh; display: grid; place-items: center; text-align: center; padding-block: clamp(90px, 9vw, 160px); }
+.fin-sun { position: absolute; left: 50%; top: 50%; width: 120vmin; aspect-ratio: 1; margin: -60vmin 0 0 -60vmin; border-radius: 50%; background: radial-gradient(circle, rgba(255,90,61,.62), rgba(255,90,61,.2) 42%, rgba(85,133,255,.08) 62%, transparent 72%); }
+.anim .fin-sun { will-change: transform; }
+.strip { position: absolute; left: 0; width: calc(100% + 56px); height: 20px; background: repeating-linear-gradient(90deg, rgba(255,255,255,.16) 0 16px, transparent 16px 28px); }
+.strip.top { top: 26px; } .strip.bot { bottom: 26px; }
+.anim .strip { animation: strip 2.8s linear infinite; }
+.anim .strip.bot { animation-direction: reverse; }
+@keyframes strip { to { transform: translateX(-28px); } }
+.fin-in { position: relative; }
+.fin-big { font: 800 clamp(76px, min(17vw, 34vh), 460px)/.86 var(--display); letter-spacing: -.05em; margin: 14px 0 0; font-variation-settings: "opsz" 96; }
+.fin-big .wd { display: inline-block; white-space: nowrap; }
+.fin-big span span { display: inline-block; }
+.anim .fin-big span span { opacity: 0; transform: translateY(.4em) rotate(5deg); transition: opacity .6s, transform .9s var(--out); transition-delay: calc(var(--i) * 34ms); }
+.anim .fin-big.in span span { opacity: 1; transform: none; }
+.fin .sub { margin: 26px auto 26px; }
+footer { background: #08090D; color: #9AA1AD; }
+footer .wrap { display: flex; flex-wrap: wrap; gap: 12px 24px; align-items: center; padding-block: 26px 40px; font-size: 14px; }
+footer .logo { color: #ECEEF2; font-size: 17px; }
 footer .right { margin-left: auto; display: flex; gap: 20px; }
 
+@media (min-width: 1700px) { :root { --u: 22px; } }
+@media (min-width: 861px) {
+  .pin-on .story, .story { grid-template-columns: minmax(0, 5fr) minmax(0, 11fr); gap: clamp(32px, 3.4vw, 72px); align-items: center; }
+  .story .editor { justify-self: end; width: min(100%, calc((100vh - 130px) * 1.68)); }
+}
 @media (max-width: 860px) {
-  .hero { grid-template-columns: 1fr; padding-top: 20px; }
-  .specs { grid-template-columns: 1fr 1fr; }
-  .spec:nth-child(3n+1) { padding-left: 22px; border-left: 1px solid var(--line); }
-  .spec:nth-child(2n+1) { padding-left: 0; border-left: 0; }
+  :root { --u: 12px; }
+  .hero-row { grid-template-columns: 1fr; }
+  .scope-grid, .faq-grid, .priv-grid { grid-template-columns: minmax(0, 1fr); }
   .promise { grid-template-columns: 1fr; gap: 22px; }
+  .card.big, .card.small { grid-column: span 12; }
+  .disk { max-width: 420px; }
 }
 @media (max-width: 620px) {
+  :root { --u: 8px; }
   .nav-links a:not(.gh) { display: none; }
-  .specs, .smooth, .platforms { grid-template-columns: 1fr; }
-  .spec, .spec + .spec { padding-left: 0; border-left: 0; }
-  .win { font-size: 7px; grid-template-rows: 16px 1fr; }
-  .titlebar i { width: 5px; height: 5px; } .titlebar span { font-size: 7px; }
-  .doc { padding: 8px 10px; gap: 4px; } .doc-top h3 { font-size: 9px; } .share { font-size: 7px; padding: 3px 6px; }
-  .side { padding: 6px; gap: 3px; } .task { padding: 3px 0; gap: 5px; } .box { width: 8px; height: 8px; border-radius: 2px; }
-  .bars div { height: 18px; } .cursor { width: 12px; height: 12px; }
-  .timeline { grid-template-columns: 1fr; } .labels { display: none; } .tc { order: -1; }
+  .hero-top { min-height: 0; padding-top: 28px; }
+  .cta { display: grid; }
+  .cta .capsule, .cta .btn { width: 100%; }
+  .capsule > span { width: 100%; justify-content: center; }
+  .plans, .platforms { grid-template-columns: minmax(0, 1fr); }
+  .timeline { grid-template-columns: minmax(0, 1fr); } .labels { display: none; } .tc { order: -1; }
+  .timeline > .lane-label { display: none; }
+  .tu { grid-template-columns: 9fr 5.0625fr; }
+  .tu-f.a { grid-column: 1 / -1; }
+  .three-tl { display: none; }
+  .m-lane { grid-template-columns: minmax(0, 1fr); gap: 6px; }
+  .vis { min-height: 220px; }
+  footer .right { margin-left: 0; width: 100%; }
 }
-@media (prefers-reduced-motion: reduce) { .rec b { animation: none; } }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+@media print { .rv, .w > i { opacity: 1 !important; transform: none !important; } }
 </style>
 </head>
 <body>
 
-<header class="wrap nav">
-  <a class="logo" href="#top" aria-label="Dolly home"><span class="logo-mark"><i></i></span>Dolly</a>
-  <nav class="nav-links" aria-label="Main">
-    <a href="#features">Features</a>
-    <a href="#download">Download</a>
-    <a href="#pricing">Pricing</a>
-    <a href="#faq">FAQ</a>
-    <a class="gh" data-repo href="#">GitHub</a>
-  </nav>
-</header>
+<div class="pb" id="pb" aria-hidden="true"><i class="pb-fill" id="pbFill"></i><span class="pb-head" id="pbHead"><b id="pbTc">00:00:00:00</b></span></div>
 
 <main id="top">
-  <div class="wrap">
-    <div class="hero">
-      <div>
-        <div class="rec"><b aria-hidden="true"></b><span>Free</span> · open source · Mac + Windows</div>
-        <h1>Screen recordings that <em>zoom themselves.</em></h1>
+  <section class="hero" id="hero" data-job>
+    <canvas id="mist" aria-hidden="true"></canvas>
+    <header class="wrap nav">
+      <a class="logo" href="#top" aria-label="Dolly home"><span class="logo-mark"><i></i></span>Dolly</a>
+      <nav class="nav-links" aria-label="Main">
+        <a href="#features">Features</a>
+        <a href="#download">Download</a>
+        <a href="#pricing">Pricing</a>
+        <a href="#faq">FAQ</a>
+        <a class="gh" href="https://github.com/percyitchy/dolly">GitHub</a>
+      </nav>
+    </header>
+    <div class="wrap hero-top">
+      <div class="hero-type" id="heroType">
+        <div class="rec"><b aria-hidden="true" data-live></b><span>Free</span> · open source · Mac + Windows</div>
+        <h1><span class="w"><i style="--i:0">Screen</i></span> <span class="w"><i style="--i:1">recordings</i></span> <span class="w"><i style="--i:2">that</i></span> <em><span class="w"><i style="--i:3">zoom</i></span> <span class="w"><i style="--i:4">themselves.</i></span></em></h1>
       </div>
-      <div>
-        <p class="lede">Record your screen like you always do. Dolly zooms in on every click, follows your cursor like a camera on rails and exports a video that looks edited.</p>
-        <div class="cta">
-          <a class="btn primary" data-release href="#"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M16.4 12.6c0-2.4 2-3.6 2.1-3.7-1.2-1.7-3-1.9-3.6-2-1.5-.2-3 .9-3.8.9-.8 0-2-.9-3.3-.8-1.7 0-3.3 1-4.2 2.5-1.8 3.1-.5 7.7 1.3 10.2.9 1.2 1.9 2.6 3.2 2.6 1.3-.1 1.8-.8 3.3-.8 1.6 0 2 .8 3.3.8 1.4 0 2.3-1.3 3.1-2.5 1-1.4 1.4-2.8 1.4-2.9 0 0-2.8-1-2.8-4.3zM13.9 5.2c.7-.8 1.2-2 1-3.2-1 .1-2.2.7-3 1.5-.6.7-1.2 1.9-1 3.1 1.1.1 2.3-.6 3-1.4z"/></svg>Download for Mac</a>
-          <a class="btn" data-release href="#"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M3 5.1 10.4 4v7.2H3V5.1zm0 13.8 7.4 1.1v-7.1H3v6zm8.3 1.2L21 21.5v-8.6h-9.7v7.2zm0-16.2v7.3H21V2.5l-9.7 1.4z"/></svg>Download for Windows</a>
+      <div class="hero-row">
+        <div>
+          <p class="lede">Record your screen like you always do. Dolly zooms in on every click, follows your cursor like a camera on rails and exports a video that looks edited.</p>
         </div>
-        <div class="fine">MIT license · no account · no watermark</div>
+        <div>
+          <div class="cta">
+            <a class="capsule" data-live href="https://github.com/percyitchy/dolly/releases"><span><i aria-hidden="true"></i><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M16.4 12.6c0-2.4 2-3.6 2.1-3.7-1.2-1.7-3-1.9-3.6-2-1.5-.2-3 .9-3.8.9-.8 0-2-.9-3.3-.8-1.7 0-3.3 1-4.2 2.5-1.8 3.1-.5 7.7 1.3 10.2.9 1.2 1.9 2.6 3.2 2.6 1.3-.1 1.8-.8 3.3-.8 1.6 0 2 .8 3.3.8 1.4 0 2.3-1.3 3.1-2.5 1-1.4 1.4-2.8 1.4-2.9 0 0-2.8-1-2.8-4.3zM13.9 5.2c.7-.8 1.2-2 1-3.2-1 .1-2.2.7-3 1.5-.6.7-1.2 1.9-1 3.1 1.1.1 2.3-.6 3-1.4z"/></svg>Download for Mac</span></a>
+            <a class="btn" href="https://github.com/percyitchy/dolly/releases"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M3 5.1 10.4 4v7.2H3V5.1zm0 13.8 7.4 1.1v-7.1H3v6zm8.3 1.2L21 21.5v-8.6h-9.7v7.2zm0-16.2v7.3H21V2.5l-9.7 1.4z"/></svg>Download for Windows</a>
+          </div>
+          <div class="fine">MIT license · no account · no watermark</div>
+        </div>
       </div>
     </div>
 
-    <div class="editor" aria-label="Demo: a recording zooming in on each click">
-      <div class="frame" id="frame">
-        <div class="cam" id="cam">
-          <div class="wall"></div>
-          <div class="win" id="win">
-            <div class="titlebar"><i></i><i></i><i></i><span>Launch plan · Notes</span></div>
-            <div class="app">
-              <div class="side">
-                <b>Workspace</b>
-                <span>Inbox</span>
-                <span class="on">Launch plan</span>
-                <span>Roadmap</span>
-                <span>Design review</span>
-                <span>Archive</span>
+    <div class="hero-shell">
+      <div class="editor hero-demo" id="heroDemo" data-live aria-label="Demo: a recording zooming in on each click">
+        <div class="frame">
+          <div class="cam">
+            <div class="wall"></div>
+            <div class="win-shadow"></div>
+            <div class="win">
+              <div class="titlebar"><i></i><i></i><i></i><span>Launch plan · Notes</span></div>
+              <div class="app">
+                <div class="side">
+                  <b>Workspace</b>
+                  <span>Inbox</span>
+                  <span class="on">Launch plan</span>
+                  <span>Roadmap</span>
+                  <span>Design review</span>
+                  <span>Archive</span>
+                </div>
+                <div class="doc">
+                  <div class="doc-top"><h3>Friday launch checklist</h3><span class="share" data-r="share">Share</span></div>
+                  <div class="meta">Edited 2 min ago · 5 tasks</div>
+                  <div class="task" data-r="t1"><span class="box" data-r="cb1"></span><span class="t">Record the product demo</span><span class="who">Léa</span></div>
+                  <div class="task" data-r="t2"><span class="box" data-r="cb2"></span><span class="t">Write the changelog</span><span class="who">Nico</span></div>
+                  <div class="task" data-r="t3"><span class="box" data-r="cb3"></span><span class="t">Cut the launch video</span><span class="who">You</span></div>
+                  <div class="task"><span class="box"></span><span class="t">Post on X and Product Hunt</span><span class="who">Sam</span></div>
+                  <div class="bars"><div></div><div></div><div></div></div>
+                </div>
               </div>
-              <div class="doc">
-                <div class="doc-top"><h3>Friday launch checklist</h3><span class="share" id="share">Share</span></div>
-                <div class="meta">Edited 2 min ago · 5 tasks</div>
-                <div class="task" id="t1"><span class="box" id="cb1"></span><span class="t">Record the product demo</span><span class="who">Léa</span></div>
-                <div class="task" id="t2"><span class="box" id="cb2"></span><span class="t">Write the changelog</span><span class="who">Nico</span></div>
-                <div class="task" id="t3"><span class="box" id="cb3"></span><span class="t">Cut the launch video</span><span class="who">You</span></div>
-                <div class="task"><span class="box"></span><span class="t">Post on X and Product Hunt</span><span class="who">Sam</span></div>
-                <div class="bars"><div></div><div></div><div></div></div>
-              </div>
+              <div class="ripple"></div>
+              <svg class="cursor" viewBox="0 0 18 18" aria-hidden="true"><path d="M2 1.5 15.5 9.2l-6 1.3-3 5.5z" fill="#111" stroke="#fff" stroke-width="1.4" stroke-linejoin="round"/></svg>
             </div>
           </div>
-          <div class="ripple" id="ripple"></div>
-          <svg class="cursor" id="cursor" viewBox="0 0 18 18" aria-hidden="true"><path d="M2 1.5 15.5 9.2l-6 1.3-3 5.5z" fill="#111" stroke="#fff" stroke-width="1.4" stroke-linejoin="round"/></svg>
+          <div class="cam-badge">1.0×</div>
         </div>
-        <div class="cam-badge" id="badge">1.0×</div>
-      </div>
-      <div class="timeline">
-        <div class="labels lane-label"><span>Clip</span><span>Zoom</span></div>
-        <div class="lanes" id="lanes">
-          <div class="lane"><div class="clip"></div></div>
-          <div class="lane" id="zoomLane"></div>
-          <div class="playhead" id="playhead"></div>
+        <div class="timeline">
+          <div class="labels lane-label"><span>Clip</span><span>Zoom</span></div>
+          <div class="lanes">
+            <div class="lane"><div class="clip"></div></div>
+            <div class="lane"><div class="seg" style="left:10%;width:42%"><i>2.0× zoom</i></div><div class="seg" style="left:58%;width:22%"><i>2.0× zoom</i></div></div>
+            <div class="playhead"></div>
+          </div>
+          <div class="tc"><span>00:00:00:00</span> <small>/ 00:00:10:00</small></div>
+          <div class="lane-label" style="justify-self:end">auto-zoom on</div>
         </div>
-        <div class="tc" id="tc">00:00:00:00 <small>/ 00:00:10:00</small></div>
-        <div class="lane-label" style="justify-self:end">60 fps · auto-zoom on</div>
       </div>
     </div>
-  </div>
+  </section>
 
-  <section id="features" class="wrap">
-    <div class="kicker">What it does</div>
-    <h2>Every recording comes out looking edited.</h2>
-    <p class="sub">You press record and use your app. Dolly watches the clicks and the cursor, then builds the camera moves for you. You can drag any zoom on the timeline if you want a different shot.</p>
-    <div class="specs">
-      <div class="spec"><code>2.0× · per click</code><h4>Auto-zoom</h4><p>Each click becomes a zoom on the timeline. Clicks close together share one shot, so the camera doesn't bounce.</p></div>
-      <div class="spec"><code>spring, not linear</code><h4>Smooth cursor</h4><p>Shaky mouse paths get replaced with a clean glide between the points you actually clicked.</p></div>
-      <div class="spec"><code>8 wallpapers</code><h4>Backgrounds and padding</h4><p>Your screen sits on a wallpaper with rounded corners and a soft shadow. Add your own image too.</p></div>
-      <div class="spec"><code>circle · rounded</code><h4>Webcam bubble</h4><p>Record your face at the same time and park it in any corner. It shrinks out of the way when the camera zooms.</p></div>
-      <div class="spec"><code>on-device</code><h4>Captions</h4><p>Speech turns into captions on your own machine with Whisper. Nothing is sent to a server.</p></div>
-      <div class="spec"><code>16:9 · 1:1 · 9:16</code><h4>Every shape at once</h4><p>See all three shapes side by side, tick the ones you want and export them together, up to 4K at 60 fps, or as a GIF.</p></div>
+  <section class="tone t-white sheet pin" id="features" data-pin data-live style="--len:4">
+    <div class="pin-sticky">
+      <div class="wrap story">
+        <div>
+          <div class="kicker">How it works</div>
+          <h2>Press record. Click. The camera follows.</h2>
+          <ol class="steps">
+            <li class="step is-on"><b>01</b><h3>Press record</h3><p>Pick a display and hit Record. After a three-second countdown, use your app the way you always do.</p></li>
+            <li class="step"><b>02</b><h3>Click</h3><p>Every click lands on the timeline as a zoom. The camera starts moving early, so it arrives right on the click.</p></li>
+            <li class="step"><b>03</b><h3>The camera follows</h3><p>Clicks close together share one shot, so the camera doesn't bounce. Click somewhere else and a new zoom follows you there.</p></li>
+          </ol>
+          <div class="rail" aria-hidden="true"><span id="railN">01 / 03</span><i><b id="railBar"></b></i></div>
+        </div>
+        <div class="editor" id="storyStage" aria-label="Demo: scrolling drives a recording, and zoom blocks fill the timeline"></div>
+      </div>
     </div>
+  </section>
 
-    <div class="smooth">
-      <div class="pane">
-        <div class="pane-h"><span>Your mouse</span><span>raw input</span></div>
-        <svg viewBox="0 0 320 120" role="img" aria-label="A jagged mouse path">
-          <path d="M14 96 L30 90 L38 97 L52 80 L60 86 L74 70 L83 76 L95 60 L104 66 L118 52 L126 58 L140 47 L152 54 L166 41 L176 47 L190 38 L203 44 L216 33 L228 40 L242 30 L256 37 L268 28 L282 34 L300 24" fill="none" stroke="var(--muted)" stroke-width="2" stroke-linejoin="round"/>
-          <circle cx="14" cy="96" r="5" fill="var(--ink)"/><circle cx="300" cy="24" r="5" fill="var(--tally)"/>
+  <section class="tone t-night sheet pin" id="edited" data-pin data-live style="--len:3.6">
+    <div class="pin-sticky">
+      <div class="wrap morph">
+        <h2><span class="m-a">Stop.</span> <span class="m-b" id="mB">It's already edited.</span></h2>
+        <p class="sub">Stop recording and the wallpaper, padding, rounded corners, shadow and zooms are all there. Every zoom is a block you can drag, stretch or delete.</p>
+        <div class="m-stage" id="mStage"><div class="m-glow" id="mGlow"></div></div>
+        <div class="m-lane">
+          <div class="tc" id="mTc">00:00:24:00</div>
+          <div class="lanes"><div class="lane" id="mLane">
+            <div class="seg pop" style="left:6%;width:20%"><i>2.0×</i></div>
+            <div class="seg pop" style="left:30%;width:12%"><i>2.0×</i></div>
+            <div class="seg pop" style="left:50%;width:22%"><i>2.0×</i></div>
+            <div class="seg pop" style="left:78%;width:15%"><i>2.0×</i></div>
+          </div></div>
+        </div>
+        <ul class="m-chips" id="mChips">
+          <li>Wallpaper</li><li>Padding</li><li>Rounded corners</li><li>Soft shadow</li><li>Zoom on every click</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section class="tone t-paper sheet sec" id="cursor" data-live>
+    <div class="wrap scope-grid">
+      <div>
+        <div class="kicker rv">Smooth cursor</div>
+        <h2 data-w>Shaky hand. Steady cursor.</h2>
+        <p class="sub rv">Dolly replaces your shaky mouse path with a clean glide between the points you actually clicked. It's a spring run over the whole recording, and the cursor still lands right on each click.</p>
+        <div class="chips rv"><code>spring, not linear</code><code>stiffness 170</code><code>damping 26</code></div>
+      </div>
+      <div class="scope rv rv-s">
+        <div class="scope-h"><span class="a">Your mouse · raw input</span><span class="b">In the video · smoothed</span></div>
+        <svg id="scope" viewBox="0 0 900 340" role="img" aria-label="A jagged mouse path next to the same path smoothed by a spring">
+          <g stroke="#1F232B" stroke-width="1"><path d="M0 85H900M0 170H900M0 255H900M150 0V340M300 0V340M450 0V340M600 0V340M750 0V340"/></g>
+          <g id="scFade">
+            <path class="sc-raw" id="scRaw" d="M70 270 L120 225 L135 240 L190 170 L205 185 L260 120 L320 90 L370 140 L385 130 L450 190 L470 180 L530 225 L590 235 L640 190 L655 200 L720 130 L740 140 L800 95 L840 75"/>
+            <path class="sc-smooth" id="scSmooth" d="M70 270 C 150 190, 250 90, 320 90 S 500 235, 590 235 S 760 80, 840 75"/>
+            <g id="scHits"></g>
+            <circle id="scDotA" r="7" fill="#C8CDD6" cx="840" cy="75"/>
+            <circle id="scDotB" r="9" fill="#5585FF" cx="840" cy="75"/>
+          </g>
         </svg>
       </div>
-      <div class="pane">
-        <div class="pane-h"><span>In the video</span><span>smoothed</span></div>
-        <svg viewBox="0 0 320 120" role="img" aria-label="The same path, smoothed into one curve">
-          <path d="M14 96 C 90 92, 160 70, 220 44 S 290 26, 300 24" fill="none" stroke="var(--zoom)" stroke-width="3" stroke-linecap="round"/>
-          <circle cx="14" cy="96" r="5" fill="var(--ink)"/><circle cx="300" cy="24" r="5" fill="var(--tally)"/>
-        </svg>
+    </div>
+  </section>
+
+  <section class="tone t-white sheet pin" id="three" data-pin data-live style="--len:2.6">
+    <div class="pin-sticky">
+      <div class="wrap three">
+        <div class="three-h">
+          <div><div class="kicker">Three-Up</div><h2>One edit. Three shapes.</h2></div>
+          <p class="sub">See 16:9, 1:1 and 9:16 side by side on one timeline, tick the ones you want and export them together.</p>
+        </div>
+        <div class="tu" id="tu">
+          <div class="tu-f a" data-s="16:9"><div class="frame"></div><div class="tu-l"><i class="tick-box"></i>16:9</div></div>
+          <div class="tu-f b" data-s="1:1"><div class="frame f11"></div><div class="tu-l"><i class="tick-box"></i>1:1</div></div>
+          <div class="tu-f c" data-s="9:16"><div class="frame f916"></div><div class="tu-l"><i class="tick-box off"></i>9:16 <span class="pro">Pro</span></div></div>
+        </div>
+        <div class="three-foot">
+          <div class="three-tl" id="threeTl"></div>
+          <p class="fine">Free exports 16:9 and 1:1 together. Pro adds the 9:16 cut, 4K, 60 fps and GIF.</p>
+        </div>
       </div>
     </div>
   </section>
 
-  <section id="download" class="wrap">
-    <div class="kicker">Download</div>
-    <h2>One app, both computers.</h2>
-    <p class="sub">The same Electron and React codebase builds the Mac and Windows versions on every release.</p>
-    <div class="platforms">
-      <div class="plat">
-        <h4>macOS</h4>
-        <ul><li>macOS 13.3 or newer</li><li>Apple silicon</li><li>Not signed by Apple yet, so the <a data-readme href="#">first open takes one extra step</a></li></ul>
-        <a class="btn primary" data-release href="#">Download .dmg</a>
-      </div>
-      <div class="plat">
-        <h4>Windows</h4>
-        <ul><li>Windows 10 and 11</li><li>x64</li><li>Not signed yet, so <a data-readme href="#">SmartScreen asks once</a></li></ul>
-        <a class="btn primary" data-release href="#">Download .exe</a>
-      </div>
-    </div>
-    <div class="build">
-      <code id="cmd">git clone https://github.com/percyitchy/dolly && cd dolly && npm install && npm run build:native && npm run dev</code>
-      <button type="button" id="copy">Copy</button>
-    </div>
-  </section>
-
-  <section class="wrap">
-    <div class="kicker">Private by default</div>
-    <h2>Your recordings stay on your disk.</h2>
-    <div class="promise">
-      <div><h4>No account</h4><p>Open the app and record. There is no sign-up screen and no cloud library.</p></div>
-      <div><h4>No watermark</h4><p>Free exports are clean too. No logo, no time limit, no trial that runs out.</p></div>
-      <div><h4>No upload</h4><p>Video, audio and captions are processed locally. The only thing that goes online is the Pro license check.</p></div>
-    </div>
-  </section>
-
-  <section id="pricing" class="wrap">
-    <div class="kicker">Pricing</div>
-    <h2>Free to record. $9.99 once for Pro.</h2>
-    <p class="sub">No subscription. Pay once, use Pro on up to 3 devices, and get every update.</p>
-    <div class="plans">
-      <div class="plan">
-        <div class="plan-h"><h4>Free</h4><div class="price">$0</div></div>
-        <ul><li>Unlimited recordings</li><li>Auto-zoom on every click</li><li>Smooth cursor</li><li>Backgrounds and padding</li><li>MP4 export up to 1080p, 30 fps</li><li>16:9 and 1:1</li><li>No watermark</li></ul>
-        <a class="btn" data-release href="#">Download free</a>
-      </div>
-      <div class="plan pro">
-        <div class="plan-h"><h4>Pro</h4><div class="price">$9.99 <small>one time</small></div></div>
-        <ul><li>Everything in Free</li><li>4K and 60 fps export</li><li>Captions with on-device Whisper</li><li>Webcam bubble</li><li>GIF export and 9:16 vertical cut</li><li>Your own background images</li></ul>
-        <a class="btn primary" data-buy href="#">Get Pro for $9.99</a>
+  <section class="tone t-paper sheet sec" id="gallery">
+    <div class="wrap">
+      <div class="kicker rv">In the box</div>
+      <h2 data-w>The small stuff is done too.</h2>
+      <div class="bento">
+        <article class="card big rv rv-s" data-live>
+          <div class="vis">
+            <div class="wp wp-orchid" style="opacity:1;animation:none"></div>
+            <div class="mw"><i></i><i></i><i></i><i></i></div>
+            <div class="mic" aria-hidden="true"><i style="--i:0"></i><i style="--i:1"></i><i style="--i:2"></i><i style="--i:3"></i><i style="--i:4"></i></div>
+            <div class="cap"><span style="--i:0">Now</span> <span style="--i:1">tick</span> <span style="--i:2">the</span> <span style="--i:3">last</span> <span style="--i:4">task</span> <span style="--i:5">and</span> <span style="--i:6">hit</span> <span style="--i:7">Share.</span></div>
+          </div>
+          <div class="card-t"><h3>Captions <span class="pro">Pro</span></h3><p>Speech turns into captions on your own machine with Whisper. Nothing is sent to a server.</p></div>
+        </article>
+        <article class="card small rv rv-s" data-live style="--d:90ms">
+          <div class="vis">
+            <div class="push">
+              <div class="wp wp-dusk" style="opacity:1;animation:none"></div>
+              <div class="mw"><i></i><i></i><i></i><i></i></div>
+            </div>
+            <div class="zb" aria-hidden="true"><span>1.0×</span><span>2.0×</span></div>
+            <div class="bubble"><svg viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="42" r="19" fill="#6B4A3A"/><path d="M14 104c2-30 18-42 36-42s34 12 36 42z" fill="#2A2F5C"/></svg></div>
+          </div>
+          <div class="card-t"><h3>Webcam bubble <span class="pro">Pro</span></h3><p>Record your face at the same time and park it in any corner. It shrinks out of the way when the camera zooms.</p></div>
+        </article>
+        <article class="card small rv rv-s" data-live>
+          <div class="vis">
+            <div class="wp wp-dusk" style="--i:0"></div><div class="wp wp-dawn" style="--i:1"></div><div class="wp wp-ocean" style="--i:2"></div><div class="wp wp-forest" style="--i:3"></div><div class="wp wp-ember" style="--i:4"></div><div class="wp wp-orchid" style="--i:5"></div><div class="wp wp-slate" style="--i:6"></div><div class="wp wp-paper" style="--i:7"></div>
+            <div class="mw tight"><i></i><i></i><i></i><i></i></div>
+            <div class="wp-names" aria-hidden="true"><span style="--i:0">Dusk</span><span style="--i:1">Dawn</span><span style="--i:2">Ocean</span><span style="--i:3">Forest</span><span style="--i:4">Ember</span><span style="--i:5">Orchid</span><span style="--i:6">Slate</span><span style="--i:7">Paper</span></div>
+          </div>
+          <div class="card-t"><h3>Backgrounds</h3><p>Your screen sits on a wallpaper with rounded corners and a soft shadow. Eight come built in, and Pro adds your own images.</p></div>
+        </article>
+        <article class="card big rv rv-s" data-live style="--d:90ms">
+          <div class="vis exp">
+            <div class="exp-row r1"><span>Launch plan 16x9 1080p30.mp4</span><i class="exp-ok"></i><div class="exp-bar"><i></i></div></div>
+            <div class="exp-row r2"><span>Launch plan 1x1 1080p30.mp4</span><i class="exp-ok"></i><div class="exp-bar"><i></i></div></div>
+            <div class="exp-done"><span>2 files saved</span><b>Reveal in Finder</b></div>
+          </div>
+          <div class="card-t"><h3>Export</h3><p>Tick your shapes and they export one after another. MP4 up to 1080p, 30 fps for free. 4K, 60 fps and GIF with Pro.</p></div>
+        </article>
       </div>
     </div>
   </section>
 
-  <section id="faq" class="wrap">
-    <div class="kicker">Questions</div>
-    <h2>Before you hit record.</h2>
-    <div class="faq">
-      <details open><summary>Is it really free?</summary><p>Yes. Recording, auto-zoom, smooth cursor and 1080p export are free forever, and the code is MIT licensed. Pro is a one-time $9.99 for 4K, 60 fps, captions, webcam, GIF export and the vertical cut.</p></details>
-      <details><summary>How do I activate Pro?</summary><p>After you pay you get a license key on Whop. Paste it in Settings once, and Pro keeps working offline. One key works on up to 3 devices.</p></details>
-      <details><summary>Which permissions does it need?</summary><p>On a Mac you allow Screen Recording, Input Monitoring and the microphone once in System Settings. macOS's wording mentions keystrokes, but Dolly only asks for mouse events, so it never sees what you type. On Windows you only allow the microphone.</p></details>
-      <details><summary>Why does my computer warn me when I open it?</summary><p>The builds aren't signed yet. The README shows the one extra step on Mac and Windows. Until they're signed, macOS may ask for permissions again after an update.</p></details>
-      <details><summary>Can I edit the zooms?</summary><p>Every zoom is a block on the timeline. Drag it, stretch it, change the zoom level or delete it.</p></details>
-      <details><summary>How was it built?</summary><p>With Claude Code on Opus 5.5. The full source is on GitHub.</p></details>
+  <section class="tone t-night sheet sec priv" id="privacy" data-live>
+    <div class="wrap">
+      <div class="priv-grid">
+        <div>
+          <div class="kicker rv">Private by default</div>
+          <h2 data-w>Your recordings stay on your disk.</h2>
+        </div>
+        <div class="disk rv rv-s" aria-hidden="true">
+          <div class="disk-sweep"></div><div class="disk-light"></div><div class="disk-dot"></div>
+        </div>
+      </div>
+      <div class="promise" data-stagger>
+        <div class="rv"><h4>No account</h4><p>Open the app and record. There is no sign-up screen and no cloud library.</p></div>
+        <div class="rv"><h4>No watermark</h4><p>Free exports are clean too. No logo, no time limit, no trial that runs out.</p></div>
+        <div class="rv"><h4>No upload</h4><p>Video, audio and captions are processed locally. The only thing that goes online is the Pro license check.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="tone t-white sheet sec" id="pricing">
+    <div class="wrap">
+      <div class="kicker rv">Pricing</div>
+      <h2 data-w>Free to record. $9.99 once for Pro.</h2>
+      <p class="sub rv">No subscription. Pay once, use Pro on up to 3 devices, and get every update.</p>
+      <div class="plans">
+        <div class="plan rv rv-l">
+          <div class="plan-h"><h4>Free</h4><div class="price">$0</div></div>
+          <ul data-stagger><li class="rv">Unlimited recordings</li><li class="rv">Auto-zoom on every click</li><li class="rv">Smooth cursor</li><li class="rv">Backgrounds and padding</li><li class="rv">MP4 export up to 1080p, 30 fps</li><li class="rv">16:9 and 1:1</li><li class="rv">No watermark</li></ul>
+          <a class="btn" href="https://github.com/percyitchy/dolly/releases">Download free</a>
+        </div>
+        <div class="plan pro-plan rv rv-r">
+          <div class="plan-h"><h4>Pro</h4><div class="price">$9.99 <small>one time</small></div></div>
+          <ul data-stagger><li class="rv">Everything in Free</li><li class="rv">4K and 60 fps export</li><li class="rv">Captions with on-device Whisper</li><li class="rv">Webcam bubble</li><li class="rv">GIF export and 9:16 vertical cut</li><li class="rv">Your own background images</li></ul>
+          <a class="btn primary" href="https://whop.com/getdolly/dolly-lifetime-sub">Get Pro for $9.99</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="tone t-paper sheet sec" id="download">
+    <div class="wrap">
+      <div class="kicker rv">Download</div>
+      <h2 data-w>One app, both computers.</h2>
+      <p class="sub rv">The same Electron and React codebase builds the Mac and Windows versions on every release.</p>
+      <div class="platforms" data-stagger>
+        <div class="plat rv rv-s">
+          <h4>macOS</h4>
+          <ul><li>macOS 13.3 or newer</li><li>Apple silicon</li><li>Not signed by Apple yet, so the <a href="https://github.com/percyitchy/dolly#readme">first open takes one extra step</a></li></ul>
+          <a class="btn primary" href="https://github.com/percyitchy/dolly/releases">Download .dmg</a>
+        </div>
+        <div class="plat rv rv-s">
+          <h4>Windows</h4>
+          <ul><li>Windows 10 and 11</li><li>x64</li><li>Not signed yet, so <a href="https://github.com/percyitchy/dolly#readme">SmartScreen asks once</a></li></ul>
+          <a class="btn primary" href="https://github.com/percyitchy/dolly/releases">Download .exe</a>
+        </div>
+      </div>
+      <div class="build rv">
+        <code id="cmd">git clone https://github.com/percyitchy/dolly &amp;&amp; cd dolly &amp;&amp; npm install &amp;&amp; npm run build:native &amp;&amp; npm run dev</code>
+        <button type="button" id="copy">Copy</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="tone t-white sheet sec" id="faq">
+    <div class="wrap faq-grid">
+      <div>
+        <div class="kicker rv">Questions</div>
+        <h2 data-w>Before you hit record.</h2>
+      </div>
+      <div class="faq rv">
+        <details open><summary>Is it really free?</summary><p>Yes. Recording, auto-zoom, smooth cursor and 1080p export are free forever, and the code is MIT licensed. Pro is a one-time $9.99 for 4K, 60 fps, captions, webcam, GIF export and the vertical cut.</p></details>
+        <details><summary>How do I activate Pro?</summary><p>After you pay you get a license key on Whop. Paste it in Settings once, and Pro keeps working offline. One key works on up to 3 devices.</p></details>
+        <details><summary>Which permissions does it need?</summary><p>On a Mac you allow Screen Recording, Input Monitoring, the microphone and the camera once in System Settings. macOS's wording mentions keystrokes, but Dolly only asks for mouse events, so it never sees what you type. On Windows you only allow the microphone and camera.</p></details>
+        <details><summary>Why does my computer warn me when I open it?</summary><p>The builds aren't signed yet. The README shows the one extra step on Mac and Windows. Until they're signed, macOS may ask for permissions again after an update.</p></details>
+        <details><summary>Can I edit the zooms?</summary><p>Every zoom is a block on the timeline. Drag it, stretch it, change the zoom level or delete it.</p></details>
+        <details><summary>How was it built?</summary><p>With Claude Code on Opus 5.5. The full source is on GitHub.</p></details>
+      </div>
+    </div>
+  </section>
+
+  <section class="tone t-night sheet fin" id="finale" data-live>
+    <div class="fin-sun" id="finSun"></div>
+    <div class="strip top"></div><div class="strip bot"></div>
+    <div class="wrap fin-in" id="finIn">
+      <div class="kicker rv">Scene 1 · Take 1</div>
+      <h2 class="fin-big" id="finBig">That's a wrap.</h2>
+      <p class="sub rv">Free forever. Pro is $9.99 once.</p>
+      <a class="capsule rv" data-live href="https://github.com/percyitchy/dolly/releases"><span><i aria-hidden="true"></i>Download Dolly</span></a>
+      <div class="fine rv">Mac and Windows · MIT license</div>
     </div>
   </section>
 </main>
 
 <footer>
   <div class="wrap">
-    <a class="logo" href="#top" style="font-size:17px"><span class="logo-mark" style="width:22px;height:22px"><i></i></span>Dolly</a>
+    <a class="logo" href="#top"><span class="logo-mark"><i></i></span>Dolly</a>
     <span>MIT license</span>
-    <div class="right"><a data-repo href="#">GitHub</a><a href="https://x.com/zodchiii">@zodchiii</a></div>
+    <div class="right"><a href="https://github.com/percyitchy/dolly">GitHub</a><a href="https://x.com/zodchiii">@zodchiii</a></div>
   </div>
 </footer>
 
 <script>
-// ---- set your repo once; every GitHub and download link uses it ----
-const REPO = "https://github.com/percyitchy/dolly";
-const BUY = "https://whop.com/getdolly/dolly-lifetime-sub";   // Whop product link
-document.querySelectorAll("[data-buy]").forEach(a => a.href = BUY);
-document.querySelectorAll("[data-repo]").forEach(a => a.href = REPO);
-document.querySelectorAll("[data-readme]").forEach(a => a.href = REPO + "#readme");
-document.querySelectorAll("[data-release]").forEach(a => a.href = REPO + "/releases");
-document.getElementById("cmd").textContent = `git clone ${REPO} && cd dolly && npm install && npm run build:native && npm run dev`;
-document.getElementById("copy").addEventListener("click", e => {
-  const text = document.getElementById("cmd").textContent, b = e.currentTarget;
-  const done = () => { b.textContent = "Copied"; setTimeout(() => b.textContent = "Copy", 1600); };
-  navigator.clipboard?.writeText(text).then(done).catch(() => {
-    const r = document.createRange(); r.selectNodeContents(document.getElementById("cmd"));
-    const s = getSelection(); s.removeAllRanges(); s.addRange(r);
-  }) ?? done();
-});
-
-// ---- the self-zooming demo ----
-const T = 10, ZOOM = 2.0;
-const cam = document.getElementById("cam"), frame = document.getElementById("frame");
-const cursor = document.getElementById("cursor"), ripple = document.getElementById("ripple");
-const badge = document.getElementById("badge"), tc = document.getElementById("tc"), playhead = document.getElementById("playhead");
-const zoomLane = document.getElementById("zoomLane");
-const els = { cb1: cb1, cb2: cb2, cb3: cb3, share: share, t1: t1, t2: t2, t3: t3 };
-
-// cursor keyframes: target element (or fraction of the frame) at time t
-const KEYS = [
-  { t: 0.0, at: [.62, .86] },
-  { t: 1.2, at: "cb1" }, { t: 1.6, at: "cb1", click: "cb1" },
-  { t: 2.5, at: "cb2" }, { t: 2.9, at: "cb2", click: "cb2" },
-  { t: 3.7, at: "cb3" }, { t: 4.1, at: "cb3", click: "cb3" },
-  { t: 5.6, at: "share" }, { t: 6.1, at: "share", click: "share" },
-  { t: 7.8, at: [.58, .78] }, { t: T, at: [.62, .86] },
-];
-const SEGS = [{ a: 1.15, b: 4.8 }, { a: 5.4, b: 7.6 }];
-SEGS.forEach(s => {
-  const d = document.createElement("div"); d.className = "seg";
-  d.style.left = (s.a / T * 100) + "%"; d.style.width = ((s.b - s.a) / T * 100) + "%";
-  d.textContent = ZOOM.toFixed(1) + "× zoom"; zoomLane.appendChild(d);
-});
-
-let W = 0, H = 0, P = {};
-function centerOf(el) {
-  let x = el.offsetWidth / 2, y = el.offsetHeight / 2, n = el;
-  while (n && n !== cam) { x += n.offsetLeft; y += n.offsetTop; n = n.offsetParent; }
-  return [x, y];
-}
-function measure() {
-  const saved = cam.style.transform; cam.style.transform = "none";
-  W = cam.offsetWidth; H = cam.offsetHeight;
-  for (const k of ["cb1", "cb2", "cb3", "share"]) P[k] = centerOf(els[k]);
-  cam.style.transform = saved;
-}
-const ease = x => x < .5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
+(() => {
+const root = document.documentElement;
+const still = !root.classList.contains("anim");
+const $ = (s, r = document) => r.querySelector(s), $$ = (s, r = document) => [...r.querySelectorAll(s)];
 const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
-const pt = k => typeof k.at === "string" ? P[k.at] : [k.at[0] * W, k.at[1] * H];
+const mix = (a, b, k) => a + (b - a) * k;
+const ramp = (x, a, b) => clamp((x - a) / (b - a), 0, 1);
+const ease = x => x < .5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
+const safe = fn => { try { fn(); } catch (e) { console.error(e); } };
+const stackQ = matchMedia("(max-width: 620px), (max-height: 560px)");
+if (!still) { root.classList.toggle("pin-on", !stackQ.matches); stackQ.addEventListener("change", () => root.classList.toggle("pin-on", !stackQ.matches)); }
 
-function cursorAt(t) {
-  for (let i = 0; i < KEYS.length - 1; i++) {
-    const a = KEYS[i], b = KEYS[i + 1];
-    if (t >= a.t && t <= b.t) {
-      const e = ease((t - a.t) / (b.t - a.t)), p = pt(a), q = pt(b);
-      return [p[0] + (q[0] - p[0]) * e, p[1] + (q[1] - p[1]) * e];
+// one rAF for the page; it stops when nothing on screen needs it
+const loops = new Set(), jobs = new Map();
+let raf = 0, last = 0;
+function frame(now) {
+  raf = 0;
+  const dt = last ? Math.min(.1, (now - last) / 1000) : 1 / 60;
+  last = now;
+  for (const f of [...loops]) f(now, dt);
+  if (loops.size) raf = requestAnimationFrame(frame); else last = 0;
+}
+const start = f => { loops.add(f); if (!raf) raf = requestAnimationFrame(frame); };
+const stop = f => loops.delete(f);
+const io = !still && new IntersectionObserver(es => es.forEach(e => {
+  e.target.classList.toggle("is-live", e.isIntersecting);
+  for (const f of jobs.get(e.target) || []) e.isIntersecting ? start(f) : stop(f);
+}), { rootMargin: "8% 0px" });
+const live = (el, f) => { if (!jobs.has(el)) jobs.set(el, []); jobs.get(el).push(f); };
+
+// ---- copy button ----
+safe(() => {
+  $("#copy").addEventListener("click", e => {
+    const text = $("#cmd").textContent, b = e.currentTarget;
+    const done = () => { b.textContent = "Copied"; setTimeout(() => b.textContent = "Copy", 1600); };
+    navigator.clipboard?.writeText(text).then(done).catch(() => {
+      const r = document.createRange(); r.selectNodeContents($("#cmd"));
+      const s = getSelection(); s.removeAllRanges(); s.addRange(r);
+    }) ?? done();
+  });
+});
+
+// ---- the recording: one pure render(t), so time or scroll can drive it ----
+const T = 10, ZOOM = 2, EASE = .6;
+const KEYS = [
+  { t: 0, at: [.6, .86] },
+  { t: 1.2, at: "cb1" }, { t: 1.6, at: "cb1", click: "cb1" },
+  { t: 2.25, at: "cb2" }, { t: 2.6, at: "cb2", click: "cb2" },
+  { t: 3.25, at: "cb3" }, { t: 3.6, at: "cb3", click: "cb3" },
+  { t: 5.9, at: "share" }, { t: 6.4, at: "share", click: "share" },
+  { t: 8, at: [.56, .78] }, { t: T, at: [.6, .86] },
+];
+const CLICKS = KEYS.filter(k => k.click);
+// a zoom starts 0.6 s before its first click and ends 1.6 s after its last
+const SEGS = [{ a: 1, b: 5.2 }, { a: 5.8, b: 8 }];
+const zoomAt = t => {
+  for (const s of SEGS) if (t >= s.a && t <= s.b) return ease(ramp(t, s.a, s.a + EASE)) * ease(1 - ramp(t, s.b - EASE, s.b));
+  return 0;
+};
+const recs = new Map();
+const ro = "ResizeObserver" in window && new ResizeObserver(es => es.forEach(e => { const r = recs.get(e.target); if (r) { r.measure(); r.render(r.t); } }));
+
+class Rec {
+  constructor(f, { shape = "16:9", ui = null, fill = false } = {}) {
+    Object.assign(this, { f, shape, fill, t: 0, n: -1, tcText: "", badgeText: "" });
+    this.cam = $(".cam", f); this.win = $(".win", f);
+    this.cursor = $(".cursor", f); this.ripple = $(".ripple", f); this.badge = $(".cam-badge", f);
+    this.r = Object.fromEntries($$("[data-r]", f).map(e => [e.dataset.r, e]));
+    if (shape !== "16:9") { f.prepend($(".wall", f)); this.badge?.remove(); this.badge = null; }
+    if (ui) {
+      this.ph = $(".playhead", ui); this.tc = $(".tc span", ui); this.clip = $(".clip", ui);
+      this.segs = $$(".seg i", ui);
+    }
+    this.P = {};
+    this.measure();
+    recs.set(f, this); ro && ro.observe(f);
+  }
+  measure() {
+    const { cam, win, f } = this;
+    this.W = cam.offsetWidth; this.H = cam.offsetHeight; this.wx = win.offsetLeft; this.wy = win.offsetTop; this.ww = win.offsetWidth; this.wh = win.offsetHeight;
+    this.FW = f.clientWidth; this.FH = f.clientHeight; this.k = this.FW / this.W; this.hot = this.W / 96 * .22;
+    for (const k of ["cb1", "cb2", "cb3", "share"]) {
+      let n = this.r[k], x = n.offsetWidth / 2, y = n.offsetHeight / 2;
+      while (n && n !== win) { x += n.offsetLeft; y += n.offsetTop; n = n.offsetParent; }
+      this.P[k] = [x, y];
     }
   }
-  return pt(KEYS[0]);
-}
-function zoomAt(t) {
-  for (const s of SEGS) {
-    if (t < s.a || t > s.b) continue;
-    return ease(clamp((t - s.a) / .6, 0, 1)) * ease(clamp((s.b - t) / .6, 0, 1));
+  pt(k) { return typeof k.at === "string" ? this.P[k.at] : [k.at[0] * this.ww, k.at[1] * this.wh]; }
+  cursorAt(t) {
+    for (let i = 0; i < KEYS.length - 1; i++) {
+      const a = KEYS[i], b = KEYS[i + 1];
+      if (t <= b.t) { const e = ease(ramp(t, a.t, b.t)), p = this.pt(a), q = this.pt(b); return [mix(p[0], q[0], e), mix(p[1], q[1], e)]; }
+    }
+    return this.pt(KEYS[0]);
   }
-  return 0;
+  focusAt(t) {
+    if (t <= CLICKS[0].t) return this.pt(CLICKS[0]);
+    for (let i = 0; i < CLICKS.length - 1; i++) {
+      const b = CLICKS[i + 1];
+      if (t < b.t) { const e = ease(ramp(t, b.t - .7, b.t)), p = this.pt(CLICKS[i]), q = this.pt(b); return [mix(p[0], q[0], e), mix(p[1], q[1], e)]; }
+    }
+    return this.pt(CLICKS[CLICKS.length - 1]);
+  }
+  camera(fx, fy, z) {
+    const { W, H, FW, FH, k, wx, wy, ww, wh } = this;
+    if (this.shape === "16:9") {
+      const s = 1 + (ZOOM - 1) * z;
+      const tx = clamp(W / 2 - fx * s, W - W * s, 0), ty = clamp(H / 2 - fy * s, H - H * s, 0);
+      return `translate(${tx * k}px, ${ty * k}px) scale(${s * k})`;
+    }
+    // at rest the screen fits the frame width, at full zoom every shape shows the same slice of screen
+    const s0 = FW * .94 / ww, s1 = ZOOM * FH / wh, s = mix(s0, s1, z);
+    const tx0 = FW / 2 - (wx + ww / 2) * s0, ty0 = FH / 2 - (wy + wh / 2) * s0;
+    const tx1 = clamp(FW / 2 - fx * s1, FW - (wx + ww) * s1, -wx * s1), ty1 = clamp(FH / 2 - fy * s1, FH - (wy + wh) * s1, -wy * s1);
+    return `translate(${mix(tx0, tx1, z)}px, ${mix(ty0, ty1, z)}px) scale(${s})`;
+  }
+  render(t) {
+    this.t = t;
+    const [cx, cy] = this.cursorAt(t), [fx, fy] = this.focusAt(t), z = zoomAt(t);
+    this.cursor.style.transform = `translate(${cx - this.hot}px, ${cy - this.hot}px)`;
+    this.cam.style.transform = this.camera(fx + this.wx, fy + this.wy, z);
+    if (this.badge) { const b = (1 + (ZOOM - 1) * z).toFixed(1) + "×"; if (b !== this.badgeText) this.badge.textContent = this.badgeText = b; }
+    const n = CLICKS.filter(k => t >= k.t).length;
+    if (n !== this.n) {
+      this.n = n;
+      ["1", "2", "3"].forEach((id, i) => { this.r["cb" + id].classList.toggle("done", n > i); this.r["t" + id].classList.toggle("done", n > i); });
+      this.r.share.classList.toggle("done", n > 3);
+      this.r.share.textContent = n > 3 ? "Shared ✓" : "Share";
+    }
+    const hit = n && CLICKS[n - 1], age = hit ? t - hit.t : 1;
+    if (age < .5) {
+      const p = this.P[hit.click], q = age / .5;
+      this.ripple.style.opacity = 1 - q; this.ripple.style.transform = `translate(${p[0]}px, ${p[1]}px) scale(${.4 + q * 1.2})`;
+    } else if (this.ripple.style.opacity !== "0") this.ripple.style.opacity = 0;
+    if (this.ph) {
+      this.ph.style.transform = `translateX(${t / T * 100}%)`;
+      const sec = Math.floor(t), fr = Math.floor((t - sec) * 30);
+      const tc = `00:00:${String(sec).padStart(2, "0")}:${String(fr).padStart(2, "0")}`;
+      if (tc !== this.tcText) this.tc.textContent = this.tcText = tc;
+      if (this.fill) {
+        this.clip.style.transform = `scaleX(${t / T})`;
+        SEGS.forEach((s, i) => this.segs[i].style.transform = `translateX(${(ramp(t, s.a, s.b) - 1) * 100}%)`);
+      }
+    }
+  }
 }
-let focus = null;
-function render(t) {
-  const [cx, cy] = cursorAt(t);
-  cursor.style.transform = `translate(${cx - 3}px, ${cy - 2}px)`;
-  // camera: zoom toward the cursor, never showing past the edges
-  const z = zoomAt(t), s = 1 + (ZOOM - 1) * z;
-  focus = focus ? [focus[0] + (cx - focus[0]) * .12, focus[1] + (cy - focus[1]) * .12] : [cx, cy];
-  const tx = clamp(W / 2 - focus[0] * s, W - W * s, 0), ty = clamp(H / 2 - focus[1] * s, H - H * s, 0);
-  cam.style.transform = `translate(${tx}px, ${ty}px) scale(${s})`;
-  badge.textContent = s.toFixed(1) + "×";
-  // app state from the clicks so far
-  const clicked = id => KEYS.some(k => k.click === id && t >= k.t);
-  ["1", "2", "3"].forEach(n => {
-    const on = clicked("cb" + n);
-    els["cb" + n].classList.toggle("done", on); els["t" + n].classList.toggle("done", on);
-  });
-  els.share.classList.toggle("done", clicked("share"));
-  els.share.textContent = clicked("share") ? "Shared ✓" : "Share";
-  // click ripple
-  const last = KEYS.filter(k => k.click && t >= k.t && t - k.t < .5).pop();
-  if (last) {
-    const p = P[last.click], k = (t - last.t) / .5;
-    ripple.style.left = p[0] + "px"; ripple.style.top = p[1] + "px";
-    ripple.style.opacity = 1 - k; ripple.style.transform = `scale(${.4 + k * 1.2})`;
-  } else ripple.style.opacity = 0;
-  // timeline
-  playhead.style.left = (t / T * 100) + "%";
-  const sec = Math.floor(t), fr = Math.floor((t - sec) * 60);
-  tc.innerHTML = `00:00:${String(sec).padStart(2, "0")}:${String(fr).padStart(2, "0")} <small>/ 00:00:10:00</small>`;
-}
-measure();
-addEventListener("resize", () => { measure(); focus = null; });
-document.fonts?.ready.then(measure);
-const still = matchMedia("(prefers-reduced-motion: reduce)");
-if (still.matches) { focus = null; render(2.95); for (let i = 0; i < 60; i++) render(2.95); }
-else {
+
+const heroDemo = $("#heroDemo");
+const template = heroDemo.cloneNode(true);
+template.removeAttribute("id"); template.removeAttribute("data-live"); template.removeAttribute("aria-label"); template.classList.remove("hero-demo");
+const hero = new Rec($(".frame", heroDemo), { ui: heroDemo });
+hero.render(still ? 2.95 : 0);
+if (!still) { const t0 = performance.now(); live(heroDemo, now => hero.render(((now - t0) / 1000) % T)); }
+
+// ---- pinned stages: scroll drives them; stacked, they play on a loop while on screen ----
+const pins = [];
+function pin(el, render, autoSecs) {
+  if (still) { render(1); return; }
+  let cur = null;
   const t0 = performance.now();
-  (function loop(now) { render(((now - t0) / 1000) % T); requestAnimationFrame(loop); })(t0);
+  const job = (now, dt) => {
+    if (stackQ.matches) {
+      if (!autoSecs) { render(1); stop(job); return; }
+      render(((now - t0) / 1000 / autoSecs) % 1);
+      return;
+    }
+    const r = el.getBoundingClientRect(), d = r.height - innerHeight;
+    const tgt = d > 0 ? clamp(-r.top / d, 0, 1) : 1;
+    cur = cur === null ? tgt : cur + (tgt - cur) * (1 - Math.exp(-dt * 9));
+    if (Math.abs(tgt - cur) < .0006) { cur = tgt; render(cur); stop(job); return; }
+    render(cur);
+  };
+  live(el, job); pins.push([el, job]); render(0);
 }
+
+// ---- story ----
+safe(() => {
+  const stage = $("#storyStage"), ed = template.cloneNode(true);
+  stage.append(...ed.children);
+  stage.style.cssText = "";
+  const f = $(".frame", stage), lane = $$(".lane", stage)[1];
+  $$(".seg i", stage).forEach(i => i.style.willChange = "transform");
+  CLICKS.forEach(c => { const m = document.createElement("i"); m.className = "tick"; m.style.left = c.t / T * 100 + "%"; m.style.opacity = 0; lane.append(m); });
+  const ticks = $$(".tick", lane);
+  const ov = document.createElement("div"); ov.className = "ov";
+  ov.innerHTML = '<span class="ov-go"><i></i>Record</span><span class="ov-n" hidden></span>';
+  const chip = document.createElement("div"); chip.className = "st-rec"; chip.innerHTML = "<i></i>REC"; chip.style.opacity = 0;
+  f.append(ov, chip);
+  const go = $(".ov-go", ov), num = $(".ov-n", ov), steps = $$(".step"), n = $("#railN"), bar = $("#railBar");
+  const rec = new Rec(f, { ui: stage, fill: true });
+  let step = -1, digit = null;
+  pin($("#features"), p => {
+    const t = mix(0, 9.2, ramp(p, .22, .98));
+    rec.render(t);
+    const d = p < .05 ? 0 : p < .22 ? 3 - Math.min(2, Math.floor(ramp(p, .07, .22) * 3)) : -1;
+    if (d !== digit) {
+      digit = d;
+      go.hidden = d !== 0; num.hidden = d <= 0; if (d > 0) num.textContent = d;
+      go.classList.toggle("down", p > .035);
+    }
+    ov.style.opacity = 1 - ramp(p, .2, .24); ov.style.visibility = p >= .24 ? "hidden" : "";
+    chip.style.opacity = ramp(p, .2, .24);
+    const s = t <= 0 ? 0 : t < 3 ? 1 : 2;
+    if (s !== step) {
+      step = s;
+      steps.forEach((el, i) => el.classList.toggle("is-on", i === s));
+      n.textContent = `0${s + 1} / 03`;
+    }
+    bar.style.transform = `scaleX(${p})`;
+    ticks.forEach((m, i) => m.style.opacity = t >= CLICKS[i].t ? .9 : 0);
+  }, 14);
+});
+
+// ---- stop, it's already edited ----
+safe(() => {
+  const stage = $("#mStage"), ed = template.cloneNode(true), f = $(".frame", ed);
+  stage.append(f);
+  const tag = document.createElement("div"); tag.className = "m-tag";
+  const chip = document.createElement("div"); chip.className = "st-rec"; chip.innerHTML = "<i></i><span>REC</span>";
+  f.append(chip, tag);
+  $(".cam-badge", f).remove();
+  const rec = new Rec(f), wall = $(".wall", f), win = $(".win", f), shadow = $(".win-shadow", f);
+  const tagText = $("span", chip), glow = $("#mGlow"), b = $("#mB"), blocks = $$(".seg", $("#mLane")), chips = $$("li", $("#mChips")), tc = $("#mTc");
+  const START = .4;
+  let state = "";
+  pin($("#edited"), p => {
+    b.style.opacity = ramp(p, .07, .15); b.style.transform = `translateY(${(1 - ramp(p, .07, .17)) * 18}px)`;
+    wall.style.opacity = ramp(p, .14, .34);
+    const pad = ease(ramp(p, .2, .42)), s = mix(1 / .86, 1, pad);
+    win.style.transform = `scale(${s})`;
+    win.style.borderRadius = shadow.style.borderRadius = ease(ramp(p, .32, .5)) * 1.1 + "em";
+    shadow.style.transform = `scale(${s})`;
+    shadow.style.opacity = ramp(p, .38, .54);
+    glow.style.opacity = ramp(p, .14, .5);
+    [.18, .28, .4, .46, .54].forEach((a, i) => chips[i].classList.toggle("on", p >= a));
+    blocks.forEach((el, i) => el.classList.toggle("on", p >= .54 + i * .06));
+    rec.render(still ? START : mix(START, 3.1, ramp(p, .74, 1)));
+    const st = p < .07 ? "REC" : p < .54 ? "Stopped" : "Edited";
+    if (st !== state) { state = st; tagText.textContent = st; chip.classList.toggle("quiet", st !== "REC"); tag.textContent = st === "Edited" ? "Ready to export" : "Raw recording"; }
+    if (tc) tc.textContent = "00:00:" + String(Math.round(mix(14, 24, ramp(p, 0, .07)))).padStart(2, "0") + ":00";
+  }, 11);
+});
+
+// ---- three-up ----
+safe(() => {
+  const box = $("#tu"), items = $$(".tu-f", box), tl = template.cloneNode(true);
+  const uiHost = $("#threeTl"); uiHost.append($(".timeline", tl));
+  const rs = items.map((el, i) => {
+    const f = $(".frame", el);
+    f.append(...$(".frame", template.cloneNode(true)).children);
+    return new Rec(f, { shape: el.dataset.s, ui: i ? null : uiHost });
+  });
+  let from = [];
+  const measure = () => {
+    const bw = box.clientWidth, bh = box.clientHeight, a = items[0];
+    const S = Math.min(bw * .74 / a.offsetWidth, Math.max(1.05, (bh + 60) / a.offsetHeight));
+    const h = a.offsetHeight * S * .9;
+    from = items.map((el, i) => ({ x: bw / 2 - (el.offsetLeft + el.offsetWidth / 2), y: bh / 2 - (el.offsetTop + el.offsetHeight / 2), s: i ? h / el.offsetHeight : S }));
+  };
+  measure(); addEventListener("resize", measure);
+  const labels = $$(".tu-l", box), foot = $(".three-foot");
+  let lastP = -1;
+  const place = p => {
+    lastP = p;
+    if (still || stackQ.matches) { items.forEach(el => el.style.transform = ""); return; }
+    const e = ease(ramp(p, .12, .8));
+    items.forEach((el, i) => {
+      const f = from[i], o = i ? ramp(p, .08, .2) : 1;
+      el.style.transform = `translate(${mix(f.x, 0, e)}px, ${mix(f.y, 0, e)}px) scale(${mix(f.s, 1, e)})`;
+      el.style.opacity = o;
+    });
+    labels.forEach(l => l.style.opacity = ramp(p, .7, .9));
+    foot.style.opacity = ramp(p, .7, .95);
+  };
+  pin($("#three"), place, 0);
+  if (still) { rs.forEach(r => r.render(2.95)); return; }
+  rs.forEach(r => r.render(0));
+  const t0 = performance.now();
+  live($("#three"), now => { const t = ((now - t0) / 1000) % T; rs.forEach(r => r.render(t)); });
+  stackQ.addEventListener("change", () => place(lastP));
+});
+
+// ---- raw path against the same spring the app uses ----
+safe(() => {
+  let seed = 11;
+  const rnd = () => (seed = seed * 16807 % 2147483647) / 2147483647 - .5;
+  const way = [[70, 270], [320, 90], [590, 235], [840, 75]], LEG = 96, REST = 20;
+  const raw = [], hits = [];
+  let jx = 0, jy = 0;
+  way.slice(1).forEach((b, l) => {
+    const a = way[l];
+    for (let j = 0; j < LEG; j++) {
+      const e = ease(j / LEG), amp = 8 + 44 * Math.sin(Math.PI * j / LEG);
+      if (j % 4 === 0) { jx = rnd() * amp; jy = rnd() * amp; }
+      raw.push([mix(a[0], b[0], e) + jx, mix(a[1], b[1], e) + jy + Math.sin(j / 7) * amp * .4]);
+    }
+    for (let j = 0; j < REST; j++) raw.push([b[0], b[1]]);
+    hits.push(raw.length - 1);
+  });
+  // stiffness 170, damping 26, mass 1, then pulled to the true point over the 80 ms before each click
+  const K = 170, C = 26, H = 1 / 240;
+  const smooth = [];
+  let x = raw[0][0], y = raw[0][1], vx = 0, vy = 0;
+  raw.forEach(([rx, ry], i) => {
+    for (let s = 0; s < 4; s++) { vx += (K * (rx - x) - C * vx) * H; vy += (K * (ry - y) - C * vy) * H; x += vx * H; y += vy * H; }
+    const nextHit = hits.find(h => h >= i), left = nextHit - i, q = left < 5 ? 1 - left / 5 : 0;
+    smooth.push([mix(x, way[hits.indexOf(nextHit) + 1][0], q), mix(y, way[hits.indexOf(nextHit) + 1][1], q)]);
+  });
+  const d = a => "M" + a.map(p => p[0].toFixed(1) + " " + p[1].toFixed(1)).join("L");
+  const cum = a => { let s = 0; return a.map((p, i) => s += i ? Math.hypot(p[0] - a[i - 1][0], p[1] - a[i - 1][1]) : 0); };
+  const lineR = $("#scRaw"), lineS = $("#scSmooth"), dotA = $("#scDotA"), dotB = $("#scDotB"), fade = $("#scFade"), hitG = $("#scHits");
+  lineR.setAttribute("d", d(raw)); lineS.setAttribute("d", d(smooth));
+  way.slice(1).forEach(w => {
+    const c = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+    c.setAttribute("cx", w[0]); c.setAttribute("cy", w[1]); c.setAttribute("r", 15); c.setAttribute("class", "sc-hit"); hitG.append(c);
+  });
+  const rings = [...hitG.children], cr = cum(raw), cs = cum(smooth), N = raw.length;
+  for (const p of [lineR, lineS]) { p.setAttribute("pathLength", 1); p.style.strokeDasharray = "1 1"; }
+  const place = i => {
+    lineR.style.strokeDashoffset = 1 - cr[i] / cr[N - 1]; lineS.style.strokeDashoffset = 1 - cs[i] / cs[N - 1];
+    dotA.setAttribute("cx", raw[i][0]); dotA.setAttribute("cy", raw[i][1]);
+    dotB.setAttribute("cx", smooth[i][0]); dotB.setAttribute("cy", smooth[i][1]);
+    rings.forEach((r, n) => r.classList.toggle("on", i >= hits[n]));
+  };
+  if (still) { place(N - 1); return; }
+  place(0);
+  const t0 = performance.now(), RUN = N / 60, LOOP = RUN + 2.2;
+  live($("#cursor"), now => {
+    const s = ((now - t0) / 1000) % LOOP;
+    place(Math.min(N - 1, Math.floor(s * 60)));
+    fade.style.opacity = 1 - ramp(s, LOOP - .45, LOOP - .05);
+  });
+});
+
+// ---- WebGL mist: small buffer, 30 fps cap, real elapsed time, scales itself down ----
+safe(() => {
+  const c = $("#mist"), heroEl = $("#hero");
+  if (still) { c.remove(); return; }
+  const gl = c.getContext("webgl", { alpha: false, antialias: false, depth: false, stencil: false, powerPreference: "low-power" });
+  if (!gl) { c.remove(); return; }
+  const shader = (type, src) => { const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s); return s; };
+  const prog = gl.createProgram();
+  gl.attachShader(prog, shader(gl.VERTEX_SHADER, "attribute vec2 p;void main(){gl_Position=vec4(p,0.,1.);}"));
+  gl.attachShader(prog, shader(gl.FRAGMENT_SHADER, `precision highp float;
+    uniform vec2 r;uniform float t;uniform vec3 c0,c1,c2,c3;
+    float b(vec2 p,vec2 c,float s){vec2 d=p-c;return exp(-dot(d,d)*s);}
+    void main(){
+      vec2 u=gl_FragCoord.xy/r;vec2 p=u;p.x*=r.x/r.y;float a=r.x/r.y;
+      vec2 q=p+.14*vec2(sin(p.y*2.3+t*.17),cos(p.x*1.9-t*.13));
+      vec3 c=c0;
+      c=mix(c,c2,.95*b(q,vec2(a*(.12+.1*sin(t*.09)),.42+.16*cos(t*.07)),4.2));
+      c=mix(c,c3,.8*b(q,vec2(a*(.58+.16*cos(t*.06)),.1+.12*sin(t*.08)),5.));
+      c=mix(c,c1,.95*b(q,vec2(a*(.86+.08*cos(t*.11)),.8+.14*sin(t*.1)),4.6));
+      c+=(fract(sin(dot(gl_FragCoord.xy,vec2(12.9898,78.233)))*43758.5453)-.5)/200.;
+      gl_FragColor=vec4(c,1.);
+    }`));
+  gl.linkProgram(prog);
+  if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) { c.remove(); return; }
+  gl.useProgram(prog);
+  gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
+  gl.enableVertexAttribArray(0); gl.bindAttribLocation(prog, 0, "p");
+  const loc = gl.getAttribLocation(prog, "p"); gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+  const U = n => gl.getUniformLocation(prog, n), uR = U("r"), uT = U("t");
+  const colors = () => {
+    const cs = getComputedStyle(root);
+    ["c0", "c1", "c2", "c3"].forEach((n, i) => {
+      const h = cs.getPropertyValue("--mist-" + i).trim();
+      gl.uniform3f(U(n), parseInt(h.slice(1, 3), 16) / 255, parseInt(h.slice(3, 5), 16) / 255, parseInt(h.slice(5, 7), 16) / 255);
+    });
+  };
+  let scale = .4;
+  const size = () => {
+    const w = Math.min(960, Math.round(c.clientWidth * scale)), h = Math.round(w * c.clientHeight / Math.max(1, c.clientWidth));
+    c.width = Math.max(2, w); c.height = Math.max(2, h);
+    gl.viewport(0, 0, c.width, c.height); gl.uniform2f(uR, c.width, c.height);
+  };
+  colors(); size();
+  ro && new ResizeObserver(size).observe(c);
+  matchMedia("(prefers-color-scheme: dark)").addEventListener("change", colors);
+  new MutationObserver(colors).observe(root, { attributes: true, attributeFilter: ["data-theme"] });
+  c.addEventListener("webglcontextlost", () => c.remove());
+  let lastDraw = 0, slow = 0;
+  live(heroEl, now => {
+    const d = now - lastDraw;
+    if (d < 32) return;
+    lastDraw = now;
+    if (d > 70 && d < 400 && ++slow > 24 && scale > .22) { scale *= .75; slow = 0; size(); }
+    else if (d < 45) slow = Math.max(0, slow - 1);
+    gl.uniform1f(uT, (now / 1000) % 7200);
+    gl.drawArrays(gl.TRIANGLES, 0, 3);
+    c.classList.add("on");
+  });
+});
+
+// ---- reveal, split headings ----
+safe(() => {
+  $$("[data-w]").forEach(h => {
+    const words = h.textContent.trim().split(/\s+/);
+    h.textContent = "";
+    words.forEach((word, i) => {
+      const w = document.createElement("span"), n = document.createElement("i");
+      w.className = "w"; n.textContent = word; n.style.setProperty("--i", i); w.append(n);
+      h.append(w, i < words.length - 1 ? " " : "");
+    });
+  });
+  const big = $("#finBig"), txt = big.textContent.trim();
+  big.setAttribute("aria-label", txt);
+  big.textContent = "";
+  let n = 0;
+  const finWords = txt.split(" ");
+  finWords.forEach((word, i) => {
+    const w = document.createElement("span"); w.className = "wd"; w.setAttribute("aria-hidden", "true");
+    [...word].forEach(ch => { const s = document.createElement("span"); s.textContent = ch; s.style.setProperty("--i", n++); w.append(s); });
+    big.append(w, i < finWords.length - 1 ? " " : "");
+  });
+  if (still) return;
+  $$("[data-stagger]").forEach(g => [...g.children].forEach((c, i) => c.style.setProperty("--d", i * 70 + "ms")));
+  const rio = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { e.target.classList.add("in"); rio.unobserve(e.target); } }), { rootMargin: "0px 0px -7% 0px" });
+  $$(".rv, [data-w], #finBig").forEach(el => rio.observe(el));
+});
+
+// ---- scroll: progress playhead, hero push-in, finale ----
+safe(() => {
+  if (still) return;
+  const fill = $("#pbFill"), head = $("#pbHead"), tc = $("#pbTc"), pb = $("#pb");
+  const type = $("#heroType"), demo = heroDemo, sun = $("#finSun"), fin = $("#finale");
+  let sy = -1, max = 1;
+  const marks = () => {
+    max = Math.max(1, root.scrollHeight - innerHeight);
+    $$(".pb-mark", pb).forEach(m => m.remove());
+    if (stackQ.matches) return;
+    $$("[data-pin]").forEach(p => {
+      const m = document.createElement("i"); m.className = "pb-mark";
+      m.style.left = p.offsetTop / max * 100 + "%"; m.style.width = (p.offsetHeight - innerHeight) / max * 100 + "%";
+      pb.prepend(m);
+    });
+  };
+  const job = () => {
+    const y = scrollY; if (y === sy) { stop(job); return; }
+    sy = y;
+    const vh = innerHeight, vw = innerWidth, q = clamp(y / max, 0, 1), tcW = tc.offsetWidth;
+    fill.style.transform = `scaleX(${q})`;
+    head.style.transform = `translateX(${clamp(q * vw, 0, vw - tcW)}px)`;
+    tc.style.opacity = y > 60 ? 1 : 0;
+    const secs = q * 60, s = Math.floor(secs);
+    tc.textContent = `00:00:${String(s).padStart(2, "0")}:${String(Math.floor((secs - s) * 30)).padStart(2, "0")}`;
+    if (y < vh * 1.4) {
+      const k = clamp(y / vh, 0, 1);
+      type.style.transform = `scale(${1 + k * .1})`; type.style.opacity = 1 - ramp(k, .3, .95);
+      demo.style.transform = stackQ.matches ? "" : `scale(${mix(.93, 1, ease(ramp(k, 0, .8)))})`;
+    }
+    const r = fin.getBoundingClientRect();
+    if (r.top < vh) sun.style.transform = `scale(${mix(.55, 1.2, ramp(vh - r.top, 0, vh * 1.1))})`;
+  };
+  addEventListener("scroll", () => {
+    start(job);
+    for (const [el, f] of pins) if (el.classList.contains("is-live")) start(f);
+  }, { passive: true });
+  addEventListener("resize", () => { marks(); sy = -1; start(job); for (const [, f] of pins) start(f); });
+  marks(); document.fonts?.ready.then(() => { marks(); recs.forEach(r => { r.measure(); r.render(r.t); }); });
+  start(job);
+});
+
+// live blocks start once everything is registered
+if (!still) {
+  safe(() => $$("[data-live], [data-job]").forEach(el => io.observe(el)));
+}
+root.classList.add("ready");
+})();
 </script>
 </body>
 </html>

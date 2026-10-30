@@ -2,7 +2,7 @@
 
 export const WHOP_URL = 'https://whop.com/getdolly/dolly-lifetime-sub'
 export const WHOP_PRODUCT_ID = 'prod_aNjBF03niFqzN'
-export const VALIDATE_ENDPOINT = 'https://dolly-psi.vercel.app/api/validate'
+export const VALIDATE_ENDPOINT = 'https://getdolly.vercel.app/api/validate'
 export const LICENSE_PUBLIC_KEY = 'r133fVOusvie4eYsBLZeWGxx/J84d/ehcQKod8+nhDs=' // Ed25519 public key, base64 of the raw 32 bytes
 export const REPO_URL = 'https://github.com/percyitchy/dolly'
 
