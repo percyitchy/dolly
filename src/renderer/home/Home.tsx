@@ -207,7 +207,7 @@ export function Home({ onOpen }: { onOpen(dir: string, warnings?: string[]): voi
 function formatDate(iso: string): string {
   const date = new Date(iso)
   if (Number.isNaN(date.getTime())) return ''
-  return date.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })
+  return date.toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })
 }
 
 function PermissionsCard({ rows, missing, onAllow, onSkipMic, onSkipClicks }: {
