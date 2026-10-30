@@ -111,7 +111,8 @@ describe('CaptureHelper', () => {
     await expect(helper.stopped).rejects.toThrow('stopped unexpectedly')
   })
 
-  it('reads the last lines even when the helper exits right after them', async () => {
+  // The stand-in leaves a grandchild holding stdout, and a Windows pipe doesn't outlive its writer that way
+  it.skipIf(process.platform === 'win32')('reads the last lines even when the helper exits right after them', async () => {
     const helper = new CaptureHelper(process.execPath, [script, 'parting'])
     await expect(helper.stopped).resolves.toMatchObject({ reason: 'interrupted', durationMs: 500 })
   })

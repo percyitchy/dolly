@@ -282,6 +282,9 @@ describe('sweepTemp', () => {
   })
 })
 
+// These use shell scripts as stand-ins for ffmpeg and whisper-cli, which Windows can't run
+const unixIt = it.skipIf(process.platform === 'win32')
+
 describe('captions:generate', () => {
   let sandbox: string
   let events: CaptionEvent[]
@@ -427,7 +430,7 @@ describe('captions:generate', () => {
     expect(readdirSync(join(sandbox, 'temp'))).toEqual([])
   })
 
-  it('saves captions on the capture clock, keeps the rest of the project and cleans up', async () => {
+  unixIt('saves captions on the capture clock, keeps the rest of the project and cleans up', async () => {
     fakeTools(writesTranscript)
     const dir = makeProject()
     await generateCaptions(dir, (event) => events.push(event))
@@ -441,7 +444,7 @@ describe('captions:generate', () => {
     expect(readdirSync(join(sandbox, 'temp'))).toEqual([])
   })
 
-  it('reports rising progress and then done', async () => {
+  unixIt('reports rising progress and then done', async () => {
     fakeTools(writesTranscript)
     const dir = makeProject()
     await generateCaptions(dir, (event) => events.push(event))
@@ -450,7 +453,7 @@ describe('captions:generate', () => {
     expect(events.at(-1)).toEqual({ type: 'done', projectDir: dir })
   })
 
-  it('asks whisper for word segments, voice detection, auto language and JSON, and ffmpeg for local 16 kHz mono', async () => {
+  unixIt('asks whisper for word segments, voice detection, auto language and JSON, and ffmpeg for local 16 kHz mono', async () => {
     fakeTools(writesTranscript)
     await generateCaptions(makeProject(), (event) => events.push(event))
     const whisper = readFileSync(join(sandbox, 'whisper-args'), 'utf8')
@@ -465,7 +468,7 @@ describe('captions:generate', () => {
     expect(ffmpeg).toContain('-ac 1 -ar 16000')
   })
 
-  it('keeps edits saved while whisper was running', async () => {
+  unixIt('keeps edits saved while whisper was running', async () => {
     const dir = makeProject()
     const edited = { ...project(), name: 'Renamed mid-run' }
     fakeTools(`cat > "${join(dir, 'project.json')}" <<'JSON'\n${JSON.stringify(edited)}\nJSON\n${writesTranscript}`)
@@ -475,7 +478,7 @@ describe('captions:generate', () => {
     expect(saved.captions).toHaveLength(1)
   })
 
-  it('does not wipe existing captions when no speech is found', async () => {
+  unixIt('does not wipe existing captions when no speech is found', async () => {
     fakeTools(`echo '{"transcription": []}' > transcript.json`)
     const existing = [{ id: 'c', startMs: 0, endMs: 1000, text: 'Keep me' }]
     const dir = makeProject(project({ captions: existing }))
@@ -484,7 +487,7 @@ describe('captions:generate', () => {
     expect((JSON.parse(readFileSync(join(dir, 'project.json'), 'utf8')) as Project).captions).toEqual(existing)
   })
 
-  it('fails plainly when whisper crashes, without leaking its output', async () => {
+  unixIt('fails plainly when whisper crashes, without leaking its output', async () => {
     fakeTools(`echo 'secret stderr detail' >&2\nexit 3`)
     const error = vi.spyOn(console, 'error').mockImplementation(() => {})
     await generateCaptions(makeProject(), (event) => events.push(event))
@@ -494,7 +497,7 @@ describe('captions:generate', () => {
     expect(readdirSync(join(sandbox, 'temp'))).toEqual([])
   })
 
-  it('removes variables that would make whisper-cli load a library', async () => {
+  unixIt('removes variables that would make whisper-cli load a library', async () => {
     process.env.ANEFORGE_DYLIB = '/tmp/evil.dylib'
     fakeTools(`env > "${sandbox}/whisper-env"\n${writesTranscript}`)
     await generateCaptions(makeProject(), (event) => events.push(event))
@@ -509,7 +512,7 @@ describe('captions:generate', () => {
       register({ mainWindow: () => ({ webContents: fromMain.sender }) as never, send: (channel, event) => state.sent.push({ channel, event }) })
     })
 
-    it('sends events on the captions channel', async () => {
+    unixIt('sends events on the captions channel', async () => {
       fakeTools(writesTranscript)
       const dir = makeProject()
       await state.handlers.get('captions:generate')?.(fromMain, dir)
@@ -517,7 +520,7 @@ describe('captions:generate', () => {
       expect(state.sent.at(-1)?.event).toEqual({ type: 'done', projectDir: dir })
     })
 
-    it('joins a repeat request and refuses a second project while one runs', async () => {
+    unixIt('joins a repeat request and refuses a second project while one runs', async () => {
       fakeTools(writesTranscript)
       const dir = makeProject()
       const other = makeProject(project(), 'other.dolly')
