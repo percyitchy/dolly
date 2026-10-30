@@ -577,7 +577,8 @@ function trayIcon(): Electron.NativeImage {
 function displayInfo(display: Display): DisplayInfo {
   return {
     id: String(display.id),
-    name: display.label || `Display ${display.id}`,
+    // macOS gives the built-in screen's name in the system language, and the app is in English
+    name: display.internal ? 'Built-in Display' : display.label || `Display ${display.id}`,
     width: Math.round(display.bounds.width * display.scaleFactor),
     height: Math.round(display.bounds.height * display.scaleFactor),
     scaleFactor: display.scaleFactor,
