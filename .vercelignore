@@ -1,4 +1,5 @@
-# Vercel gets the license function and nothing else, never the Electron app
+# Vercel gets the license function and the landing page, never the Electron app
 /*
 !api
+!public
 !vercel.json

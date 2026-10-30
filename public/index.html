@@ -1,0 +1,490 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Dolly</title>
+<meta name="description" content="Dolly is a free, open-source screen recorder for Mac that zooms in on every click and smooths your cursor.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: an editing-suite page. Left-aligned display type, then a live "recording" that zooms itself, then a spec sheet. */
+:root {
+  --bg: #ECEEF1;
+  --surface: #FFFFFF;
+  --ink: #0F1217;
+  --muted: #5A616E;
+  --line: #D4D8DF;
+  --tally: #F0432A;          /* the camera's REC light */
+  --zoom: #2D63F5;           /* zoom segments on the timeline */
+  --track: #E3E6EB;
+  --shadow: 0 1px 0 rgba(15,18,23,.04), 0 18px 50px -24px rgba(15,18,23,.35);
+  /* the recorded app is a picture of a screen, so it keeps one look in both themes */
+  --app-bg: #FFFFFF; --app-side: #F5F6F8; --app-ink: #16191F; --app-muted: #7A808C; --app-line: #E4E7EC; --app-check: #2D63F5;
+  --wall-a: #FF8A5B; --wall-b: #6B5BFF; --wall-c: #1C2540;
+  --display: "Bricolage Grotesque", "Arial Narrow", system-ui, sans-serif;
+  --body: "Geist", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "Geist Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0E1014; --surface: #161A20; --ink: #ECEEF2; --muted: #9AA1AD; --line: #272C35;
+  --tally: #FF5A3D; --zoom: #5585FF; --track: #20252D;
+  --shadow: 0 1px 0 rgba(0,0,0,.3), 0 24px 60px -28px rgba(0,0,0,.8); color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg: #0E1014; --surface: #161A20; --ink: #ECEEF2; --muted: #9AA1AD; --line: #272C35;
+  --tally: #FF5A3D; --zoom: #5585FF; --track: #20252D;
+  --shadow: 0 1px 0 rgba(0,0,0,.3), 0 24px 60px -28px rgba(0,0,0,.8); color-scheme: dark; }
+
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 400 16px/1.55 var(--body); -webkit-font-smoothing: antialiased; }
+.wrap { max-width: 1120px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+a { color: inherit; }
+:focus-visible { outline: 2px solid var(--zoom); outline-offset: 3px; border-radius: 6px; }
+
+/* nav */
+.nav { display: flex; align-items: center; gap: 24px; padding-block: 22px; }
+.logo { display: flex; align-items: center; gap: 10px; font: 700 21px/1 var(--display); letter-spacing: -.02em; text-decoration: none; }
+.logo-mark { width: 26px; height: 26px; border-radius: 8px; background: var(--ink); display: grid; place-items: center; }
+.logo-mark i { width: 9px; height: 9px; border-radius: 50%; background: var(--tally); display: block; }
+.nav-links { display: flex; gap: 22px; margin-left: auto; font-size: 14.5px; color: var(--muted); }
+.nav-links a { text-decoration: none; }
+.nav-links a:hover { color: var(--ink); }
+
+/* hero */
+.hero { padding-block: 36px 28px; display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, .75fr); gap: 32px 48px; align-items: end; }
+.rec { display: inline-flex; align-items: center; gap: 9px; font: 500 12.5px/1 var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted);
+  border: 1px solid var(--line); border-radius: 999px; padding: 8px 13px 8px 11px; background: var(--surface); }
+.rec b { width: 8px; height: 8px; border-radius: 50%; background: var(--tally); animation: blink 1.6s steps(1) infinite; }
+.rec span { color: var(--ink); }
+@keyframes blink { 50% { opacity: .25; } }
+h1 { font: 800 clamp(44px, 7.4vw, 92px)/.93 var(--display); letter-spacing: -.045em; margin: 22px 0 0; text-wrap: balance; font-variation-settings: "opsz" 96; }
+h1 em { font-style: normal; color: var(--tally); }
+.lede { font-size: 18px; color: var(--muted); max-width: 40ch; margin: 0 0 22px; }
+.cta { display: flex; flex-wrap: wrap; gap: 10px; }
+.btn { display: inline-flex; align-items: center; gap: 9px; height: 46px; padding: 0 18px; border-radius: 12px; font: 600 15px/1 var(--body); text-decoration: none; border: 1px solid var(--line); background: var(--surface); color: var(--ink); }
+.btn.primary { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.btn svg { width: 17px; height: 17px; flex: 0 0 auto; }
+.fine { margin-top: 12px; font: 400 12.5px/1.4 var(--mono); color: var(--muted); }
+
+/* editor demo */
+.editor { margin-block: 18px 0; background: var(--surface); border: 1px solid var(--line); border-radius: 18px; box-shadow: var(--shadow); padding: 12px; }
+.frame { position: relative; width: 100%; aspect-ratio: 16 / 9; max-width: 100%; border-radius: 10px; overflow: hidden; background: var(--wall-c); }
+.cam { position: absolute; inset: 0; transform-origin: 0 0; will-change: transform; }
+.wall { position: absolute; inset: 0;
+  background: radial-gradient(60% 80% at 12% 18%, var(--wall-a) 0%, transparent 60%),
+              radial-gradient(55% 70% at 92% 85%, var(--wall-b) 0%, transparent 62%),
+              linear-gradient(140deg, #2A2F5C, var(--wall-c)); }
+.win { position: absolute; left: 7%; top: 8%; right: 7%; bottom: 8%; background: var(--app-bg); border-radius: 10px; overflow: hidden;
+  box-shadow: 0 30px 60px -20px rgba(0,0,0,.55); display: grid; grid-template-rows: 26px 1fr; color: var(--app-ink); font-size: 11px; }
+.titlebar { display: flex; align-items: center; gap: 5px; padding: 0 10px; background: var(--app-side); border-bottom: 1px solid var(--app-line); }
+.titlebar i { width: 8px; height: 8px; border-radius: 50%; background: #FF5F57; }
+.titlebar i:nth-child(2) { background: #FEBC2E; } .titlebar i:nth-child(3) { background: #28C840; }
+.titlebar span { margin: 0 auto; color: var(--app-muted); font-size: 10px; transform: translateX(-14px); }
+.app { display: grid; grid-template-columns: 22% 1fr; min-height: 0; }
+.side { background: var(--app-side); border-right: 1px solid var(--app-line); padding: 12px 10px; display: flex; flex-direction: column; gap: 7px; color: var(--app-muted); }
+.side b { color: var(--app-ink); font-weight: 600; margin-bottom: 4px; }
+.side .on { color: var(--app-ink); background: var(--app-line); border-radius: 5px; margin: 0 -6px; padding: 2px 6px; }
+.doc { padding: 14px 20px; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.doc-top { display: flex; align-items: center; gap: 8px; }
+.doc-top h3 { margin: 0; font: 600 15px/1.2 var(--body); letter-spacing: -.01em; }
+.share { margin-left: auto; background: var(--app-ink); color: #fff; border-radius: 6px; padding: 5px 10px; font-weight: 600; font-size: 10.5px; }
+.share.done { background: #1F9D55; }
+.meta { color: var(--app-muted); font-size: 10px; }
+.task { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 1px solid var(--app-line); }
+.box { width: 13px; height: 13px; border-radius: 4px; border: 1.5px solid #B7BCC6; display: grid; place-items: center; flex: 0 0 auto; }
+.box.done { background: var(--app-check); border-color: var(--app-check); }
+.box.done::after { content: ""; width: 6px; height: 3px; border: solid #fff; border-width: 0 0 1.6px 1.6px; transform: translateY(-1px) rotate(-45deg); }
+.task.done .t { color: var(--app-muted); text-decoration: line-through; }
+.task .who { margin-left: auto; color: var(--app-muted); font-size: 9.5px; }
+.bars { display: flex; gap: 6px; margin-top: 6px; }
+.bars div { flex: 1; height: 34px; border-radius: 6px; background: var(--app-side); border: 1px solid var(--app-line); }
+.cursor { position: absolute; left: 0; top: 0; width: 18px; height: 18px; pointer-events: none; filter: drop-shadow(0 1px 1.5px rgba(0,0,0,.35)); }
+.ripple { position: absolute; width: 30px; height: 30px; margin: -15px 0 0 -15px; border-radius: 50%; border: 2px solid rgba(45,99,245,.9); pointer-events: none; opacity: 0; }
+.cam-badge { position: absolute; right: 12px; top: 12px; font: 500 11px/1 var(--mono); color: #fff; background: rgba(10,12,16,.55); padding: 6px 8px; border-radius: 6px; backdrop-filter: blur(6px); }
+
+.timeline { padding: 14px 6px 4px; display: grid; grid-template-columns: auto 1fr; gap: 8px 14px; align-items: center; }
+.tc { font: 500 13px/1 var(--mono); font-variant-numeric: tabular-nums; color: var(--ink); white-space: nowrap; }
+.tc small { color: var(--muted); font-size: 13px; }
+.lane-label { font: 500 10.5px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.lanes { position: relative; display: grid; gap: 6px; min-width: 0; }
+.lane { position: relative; height: 22px; border-radius: 6px; background: var(--track); overflow: hidden; }
+.clip { position: absolute; inset: 0; background: repeating-linear-gradient(90deg, color-mix(in srgb, var(--muted) 35%, transparent) 0 2px, transparent 2px 7px); opacity: .55; }
+.seg { position: absolute; top: 0; bottom: 0; border-radius: 6px; background: var(--zoom); color: #fff; font: 500 11px/22px var(--mono); padding-left: 8px; white-space: nowrap; overflow: hidden; }
+.playhead { position: absolute; top: -6px; bottom: -6px; width: 2px; background: var(--tally); border-radius: 1px; left: 0; }
+.playhead::before { content: ""; position: absolute; top: -3px; left: -4px; width: 10px; height: 10px; border-radius: 3px; background: var(--tally); }
+.labels { display: grid; gap: 6px; }
+.labels span { height: 22px; display: flex; align-items: center; }
+
+/* sections */
+section { padding-block: 72px 0; }
+.kicker { font: 500 12px/1 var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--tally); }
+h2 { font: 750 clamp(30px, 4.2vw, 48px)/1.02 var(--display); letter-spacing: -.035em; margin: 12px 0 0; text-wrap: balance; max-width: 18ch; }
+.sub { color: var(--muted); max-width: 52ch; margin: 14px 0 0; }
+
+.specs { margin-top: 34px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border-top: 1px solid var(--line); }
+.spec { padding: 22px 22px 26px 0; border-bottom: 1px solid var(--line); display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.spec + .spec { padding-left: 22px; border-left: 1px solid var(--line); }
+.spec:nth-child(3n+1) { padding-left: 0; border-left: 0; }
+.spec h4 { margin: 0; font: 650 19px/1.2 var(--display); letter-spacing: -.015em; }
+.spec p { margin: 0; color: var(--muted); font-size: 15px; }
+.spec code { font: 500 12px/1 var(--mono); color: var(--ink); background: var(--track); border-radius: 5px; padding: 5px 7px; align-self: flex-start; }
+
+.smooth { margin-top: 34px; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; }
+.pane { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 18px; min-width: 0; }
+.pane svg { width: 100%; height: auto; display: block; }
+.pane-h { display: flex; justify-content: space-between; font: 500 12px/1 var(--mono); color: var(--muted); letter-spacing: .04em; text-transform: uppercase; margin-bottom: 10px; }
+
+.platforms { margin-top: 34px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.plat { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 24px; display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.plat h4 { margin: 0; font: 700 26px/1 var(--display); letter-spacing: -.03em; }
+.plat ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 6px; color: var(--muted); font-size: 14.5px; }
+.plat ul li::before { content: "·"; margin-right: 8px; color: var(--ink); }
+.plat .btn { align-self: flex-start; }
+.plat .soon { font: 500 13px/1 var(--mono); color: var(--muted); margin-top: auto; }
+.build { margin-top: 16px; display: flex; align-items: center; gap: 12px; background: var(--ink); color: var(--bg); border-radius: 14px; padding: 14px 14px 14px 18px; }
+.build code { font: 400 13.5px/1.5 var(--mono); overflow-x: auto; white-space: nowrap; flex: 1; min-width: 0; }
+.build button { flex: 0 0 auto; font: 600 13px/1 var(--body); background: transparent; color: var(--bg); border: 1px solid color-mix(in srgb, var(--bg) 35%, transparent); border-radius: 9px; padding: 9px 12px; cursor: pointer; }
+
+.promise { margin-top: 34px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 32px; }
+.promise div { border-top: 2px solid var(--ink); padding-top: 14px; }
+.promise h4 { margin: 0 0 6px; font: 700 22px/1.1 var(--display); letter-spacing: -.02em; }
+.promise p { margin: 0; color: var(--muted); font-size: 15px; }
+
+.faq { margin-top: 26px; border-top: 1px solid var(--line); max-width: 760px; }
+.faq details { border-bottom: 1px solid var(--line); padding: 18px 0; }
+.faq summary { cursor: pointer; font: 600 17px/1.3 var(--body); list-style: none; display: flex; justify-content: space-between; gap: 16px; }
+.faq summary::-webkit-details-marker { display: none; }
+.faq summary::after { content: "+"; font: 400 22px/1 var(--mono); color: var(--muted); }
+.faq details[open] summary::after { content: "−"; }
+.faq p { margin: 10px 0 0; color: var(--muted); max-width: 62ch; }
+
+.plans { margin-top: 34px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; max-width: 860px; }
+.plan { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 24px; display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.plan.pro { border: 2px solid var(--ink); }
+.plan-h { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.plan h4 { margin: 0; font: 700 26px/1 var(--display); letter-spacing: -.03em; }
+.price { font: 750 34px/1 var(--display); letter-spacing: -.03em; }
+.price small { font: 400 13px/1 var(--mono); color: var(--muted); letter-spacing: 0; }
+.plan ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 8px; font-size: 15px; color: var(--muted); }
+.plan ul li::before { content: "✓"; color: var(--tally); margin-right: 10px; font-weight: 600; }
+.plan .btn { align-self: flex-start; margin-top: auto; }
+@media (max-width: 620px) { .plans { grid-template-columns: 1fr; } }
+footer { margin-top: 90px; border-top: 1px solid var(--line); }
+footer .wrap { display: flex; flex-wrap: wrap; gap: 12px 24px; align-items: center; padding-block: 26px 40px; font-size: 14px; color: var(--muted); }
+footer .right { margin-left: auto; display: flex; gap: 20px; }
+
+@media (max-width: 860px) {
+  .hero { grid-template-columns: 1fr; padding-top: 20px; }
+  .specs { grid-template-columns: 1fr 1fr; }
+  .spec:nth-child(3n+1) { padding-left: 22px; border-left: 1px solid var(--line); }
+  .spec:nth-child(2n+1) { padding-left: 0; border-left: 0; }
+  .promise { grid-template-columns: 1fr; gap: 22px; }
+}
+@media (max-width: 620px) {
+  .nav-links a:not(.gh) { display: none; }
+  .specs, .smooth, .platforms { grid-template-columns: 1fr; }
+  .spec, .spec + .spec { padding-left: 0; border-left: 0; }
+  .win { font-size: 7px; grid-template-rows: 16px 1fr; }
+  .titlebar i { width: 5px; height: 5px; } .titlebar span { font-size: 7px; }
+  .doc { padding: 8px 10px; gap: 4px; } .doc-top h3 { font-size: 9px; } .share { font-size: 7px; padding: 3px 6px; }
+  .side { padding: 6px; gap: 3px; } .task { padding: 3px 0; gap: 5px; } .box { width: 8px; height: 8px; border-radius: 2px; }
+  .bars div { height: 18px; } .cursor { width: 12px; height: 12px; }
+  .timeline { grid-template-columns: 1fr; } .labels { display: none; } .tc { order: -1; }
+}
+@media (prefers-reduced-motion: reduce) { .rec b { animation: none; } }
+</style>
+</head>
+<body>
+
+<header class="wrap nav">
+  <a class="logo" href="#top" aria-label="Dolly home"><span class="logo-mark"><i></i></span>Dolly</a>
+  <nav class="nav-links" aria-label="Main">
+    <a href="#features">Features</a>
+    <a href="#download">Download</a>
+    <a href="#pricing">Pricing</a>
+    <a href="#faq">FAQ</a>
+    <a class="gh" data-repo href="#">GitHub</a>
+  </nav>
+</header>
+
+<main id="top">
+  <div class="wrap">
+    <div class="hero">
+      <div>
+        <div class="rec"><b aria-hidden="true"></b><span>Free</span> · open source · Mac</div>
+        <h1>Screen recordings that <em>zoom themselves.</em></h1>
+      </div>
+      <div>
+        <p class="lede">Record your screen like you always do. Dolly zooms in on every click, follows your cursor like a camera on rails and exports a video that looks edited.</p>
+        <div class="cta">
+          <a class="btn primary" data-release href="#"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M16.4 12.6c0-2.4 2-3.6 2.1-3.7-1.2-1.7-3-1.9-3.6-2-1.5-.2-3 .9-3.8.9-.8 0-2-.9-3.3-.8-1.7 0-3.3 1-4.2 2.5-1.8 3.1-.5 7.7 1.3 10.2.9 1.2 1.9 2.6 3.2 2.6 1.3-.1 1.8-.8 3.3-.8 1.6 0 2 .8 3.3.8 1.4 0 2.3-1.3 3.1-2.5 1-1.4 1.4-2.8 1.4-2.9 0 0-2.8-1-2.8-4.3zM13.9 5.2c.7-.8 1.2-2 1-3.2-1 .1-2.2.7-3 1.5-.6.7-1.2 1.9-1 3.1 1.1.1 2.3-.6 3-1.4z"/></svg>Download for Mac</a>
+        </div>
+        <div class="fine">MIT license · no account · no watermark · Windows soon</div>
+      </div>
+    </div>
+
+    <div class="editor" aria-label="Demo: a recording zooming in on each click">
+      <div class="frame" id="frame">
+        <div class="cam" id="cam">
+          <div class="wall"></div>
+          <div class="win" id="win">
+            <div class="titlebar"><i></i><i></i><i></i><span>Launch plan · Notes</span></div>
+            <div class="app">
+              <div class="side">
+                <b>Workspace</b>
+                <span>Inbox</span>
+                <span class="on">Launch plan</span>
+                <span>Roadmap</span>
+                <span>Design review</span>
+                <span>Archive</span>
+              </div>
+              <div class="doc">
+                <div class="doc-top"><h3>Friday launch checklist</h3><span class="share" id="share">Share</span></div>
+                <div class="meta">Edited 2 min ago · 5 tasks</div>
+                <div class="task" id="t1"><span class="box" id="cb1"></span><span class="t">Record the product demo</span><span class="who">Léa</span></div>
+                <div class="task" id="t2"><span class="box" id="cb2"></span><span class="t">Write the changelog</span><span class="who">Nico</span></div>
+                <div class="task" id="t3"><span class="box" id="cb3"></span><span class="t">Cut the launch video</span><span class="who">You</span></div>
+                <div class="task"><span class="box"></span><span class="t">Post on X and Product Hunt</span><span class="who">Sam</span></div>
+                <div class="bars"><div></div><div></div><div></div></div>
+              </div>
+            </div>
+          </div>
+          <div class="ripple" id="ripple"></div>
+          <svg class="cursor" id="cursor" viewBox="0 0 18 18" aria-hidden="true"><path d="M2 1.5 15.5 9.2l-6 1.3-3 5.5z" fill="#111" stroke="#fff" stroke-width="1.4" stroke-linejoin="round"/></svg>
+        </div>
+        <div class="cam-badge" id="badge">1.0×</div>
+      </div>
+      <div class="timeline">
+        <div class="labels lane-label"><span>Clip</span><span>Zoom</span></div>
+        <div class="lanes" id="lanes">
+          <div class="lane"><div class="clip"></div></div>
+          <div class="lane" id="zoomLane"></div>
+          <div class="playhead" id="playhead"></div>
+        </div>
+        <div class="tc" id="tc">00:00:00:00 <small>/ 00:00:10:00</small></div>
+        <div class="lane-label" style="justify-self:end">60 fps · auto-zoom on</div>
+      </div>
+    </div>
+  </div>
+
+  <section id="features" class="wrap">
+    <div class="kicker">What it does</div>
+    <h2>Every recording comes out looking edited.</h2>
+    <p class="sub">You press record and use your app. Dolly watches the clicks and the cursor, then builds the camera moves for you. You can drag any zoom on the timeline if you want a different shot.</p>
+    <div class="specs">
+      <div class="spec"><code>2.0× · per click</code><h4>Auto-zoom</h4><p>Each click becomes a zoom on the timeline. Clicks close together share one shot, so the camera doesn't bounce.</p></div>
+      <div class="spec"><code>spring, not linear</code><h4>Smooth cursor</h4><p>Shaky mouse paths get replaced with a clean glide between the points you actually clicked.</p></div>
+      <div class="spec"><code>8 wallpapers</code><h4>Backgrounds and padding</h4><p>Your screen sits on a wallpaper with rounded corners and a soft shadow. Add your own image too.</p></div>
+      <div class="spec"><code>circle · rounded</code><h4>Webcam bubble</h4><p>Record your face at the same time and park it in any corner. It shrinks out of the way when the camera zooms.</p></div>
+      <div class="spec"><code>on-device</code><h4>Captions</h4><p>Speech turns into captions on your own machine with Whisper. Nothing is sent to a server.</p></div>
+      <div class="spec"><code>16:9 · 1:1 · 9:16</code><h4>Every shape at once</h4><p>See all three shapes side by side, tick the ones you want and export them together, up to 4K at 60 fps, or as a GIF.</p></div>
+    </div>
+
+    <div class="smooth">
+      <div class="pane">
+        <div class="pane-h"><span>Your mouse</span><span>raw input</span></div>
+        <svg viewBox="0 0 320 120" role="img" aria-label="A jagged mouse path">
+          <path d="M14 96 L30 90 L38 97 L52 80 L60 86 L74 70 L83 76 L95 60 L104 66 L118 52 L126 58 L140 47 L152 54 L166 41 L176 47 L190 38 L203 44 L216 33 L228 40 L242 30 L256 37 L268 28 L282 34 L300 24" fill="none" stroke="var(--muted)" stroke-width="2" stroke-linejoin="round"/>
+          <circle cx="14" cy="96" r="5" fill="var(--ink)"/><circle cx="300" cy="24" r="5" fill="var(--tally)"/>
+        </svg>
+      </div>
+      <div class="pane">
+        <div class="pane-h"><span>In the video</span><span>smoothed</span></div>
+        <svg viewBox="0 0 320 120" role="img" aria-label="The same path, smoothed into one curve">
+          <path d="M14 96 C 90 92, 160 70, 220 44 S 290 26, 300 24" fill="none" stroke="var(--zoom)" stroke-width="3" stroke-linecap="round"/>
+          <circle cx="14" cy="96" r="5" fill="var(--ink)"/><circle cx="300" cy="24" r="5" fill="var(--tally)"/>
+        </svg>
+      </div>
+    </div>
+  </section>
+
+  <section id="download" class="wrap">
+    <div class="kicker">Download</div>
+    <h2>On your Mac today.</h2>
+    <p class="sub">Dolly is one Electron and React codebase. The Mac version is ready now, and the Windows version comes next.</p>
+    <div class="platforms">
+      <div class="plat">
+        <h4>macOS</h4>
+        <ul><li>macOS 13.3 or newer</li><li>Apple silicon</li><li>Not signed by Apple yet, so the <a data-readme href="#">first open takes one extra step</a></li></ul>
+        <a class="btn primary" data-release href="#">Download .dmg</a>
+      </div>
+      <div class="plat">
+        <h4>Windows</h4>
+        <ul><li>Windows 10 and 11</li><li>x64</li></ul>
+        <span class="soon">Coming soon</span>
+      </div>
+    </div>
+    <div class="build">
+      <code id="cmd">git clone https://github.com/percyitchy/dolly && cd dolly && npm install && npm run build:native && npm run dev</code>
+      <button type="button" id="copy">Copy</button>
+    </div>
+  </section>
+
+  <section class="wrap">
+    <div class="kicker">Private by default</div>
+    <h2>Your recordings stay on your disk.</h2>
+    <div class="promise">
+      <div><h4>No account</h4><p>Open the app and record. There is no sign-up screen and no cloud library.</p></div>
+      <div><h4>No watermark</h4><p>Free exports are clean too. No logo, no time limit, no trial that runs out.</p></div>
+      <div><h4>No upload</h4><p>Video, audio and captions are processed locally. The only thing that goes online is the Pro license check.</p></div>
+    </div>
+  </section>
+
+  <section id="pricing" class="wrap">
+    <div class="kicker">Pricing</div>
+    <h2>Free to record. $9.99 once for Pro.</h2>
+    <p class="sub">No subscription. Pay once, use Pro on up to 3 devices, and get every update.</p>
+    <div class="plans">
+      <div class="plan">
+        <div class="plan-h"><h4>Free</h4><div class="price">$0</div></div>
+        <ul><li>Unlimited recordings</li><li>Auto-zoom on every click</li><li>Smooth cursor</li><li>Backgrounds and padding</li><li>MP4 export up to 1080p, 30 fps</li><li>16:9 and 1:1</li><li>No watermark</li></ul>
+        <a class="btn" data-release href="#">Download free</a>
+      </div>
+      <div class="plan pro">
+        <div class="plan-h"><h4>Pro</h4><div class="price">$9.99 <small>one time</small></div></div>
+        <ul><li>Everything in Free</li><li>4K and 60 fps export</li><li>Captions with on-device Whisper</li><li>Webcam bubble</li><li>GIF export and 9:16 vertical cut</li><li>Your own background images</li></ul>
+        <a class="btn primary" data-buy href="#">Get Pro for $9.99</a>
+      </div>
+    </div>
+  </section>
+
+  <section id="faq" class="wrap">
+    <div class="kicker">Questions</div>
+    <h2>Before you hit record.</h2>
+    <div class="faq">
+      <details open><summary>Is it really free?</summary><p>Yes. Recording, auto-zoom, smooth cursor and 1080p export are free forever, and the code is MIT licensed. Pro is a one-time $9.99 for 4K, 60 fps, captions, webcam, GIF export and the vertical cut.</p></details>
+      <details><summary>How do I activate Pro?</summary><p>After you pay you get a license key on Whop. Paste it in Settings once, and Pro keeps working offline. One key works on up to 3 devices.</p></details>
+      <details><summary>Which permissions does it need?</summary><p>On a Mac you allow Screen Recording, Input Monitoring and the microphone once in System Settings. macOS's wording mentions keystrokes, but Dolly only asks for mouse events, so it never sees what you type.</p></details>
+      <details><summary>Why does macOS warn me when I open it?</summary><p>The build isn't signed by Apple yet. The README shows the one extra step to open it. Until it's signed, macOS may ask for permissions again after an update.</p></details>
+      <details><summary>Can I edit the zooms?</summary><p>Every zoom is a block on the timeline. Drag it, stretch it, change the zoom level or delete it.</p></details>
+      <details><summary>How was it built?</summary><p>With Claude Code on Opus 5.5. The full source is on GitHub.</p></details>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <a class="logo" href="#top" style="font-size:17px"><span class="logo-mark" style="width:22px;height:22px"><i></i></span>Dolly</a>
+    <span>MIT license</span>
+    <div class="right"><a data-repo href="#">GitHub</a><a href="https://x.com/zodchiii">@zodchiii</a></div>
+  </div>
+</footer>
+
+<script>
+// ---- set your repo once; every GitHub and download link uses it ----
+const REPO = "https://github.com/percyitchy/dolly";
+const BUY = "https://whop.com/getdolly/dolly-lifetime-sub";   // Whop product link
+document.querySelectorAll("[data-buy]").forEach(a => a.href = BUY);
+document.querySelectorAll("[data-repo]").forEach(a => a.href = REPO);
+document.querySelectorAll("[data-readme]").forEach(a => a.href = REPO + "#readme");
+document.querySelectorAll("[data-release]").forEach(a => a.href = REPO + "/releases");
+document.getElementById("cmd").textContent = `git clone ${REPO} && cd dolly && npm install && npm run build:native && npm run dev`;
+document.getElementById("copy").addEventListener("click", e => {
+  const text = document.getElementById("cmd").textContent, b = e.currentTarget;
+  const done = () => { b.textContent = "Copied"; setTimeout(() => b.textContent = "Copy", 1600); };
+  navigator.clipboard?.writeText(text).then(done).catch(() => {
+    const r = document.createRange(); r.selectNodeContents(document.getElementById("cmd"));
+    const s = getSelection(); s.removeAllRanges(); s.addRange(r);
+  }) ?? done();
+});
+
+// ---- the self-zooming demo ----
+const T = 10, ZOOM = 2.0;
+const cam = document.getElementById("cam"), frame = document.getElementById("frame");
+const cursor = document.getElementById("cursor"), ripple = document.getElementById("ripple");
+const badge = document.getElementById("badge"), tc = document.getElementById("tc"), playhead = document.getElementById("playhead");
+const zoomLane = document.getElementById("zoomLane");
+const els = { cb1: cb1, cb2: cb2, cb3: cb3, share: share, t1: t1, t2: t2, t3: t3 };
+
+// cursor keyframes: target element (or fraction of the frame) at time t
+const KEYS = [
+  { t: 0.0, at: [.62, .86] },
+  { t: 1.2, at: "cb1" }, { t: 1.6, at: "cb1", click: "cb1" },
+  { t: 2.5, at: "cb2" }, { t: 2.9, at: "cb2", click: "cb2" },
+  { t: 3.7, at: "cb3" }, { t: 4.1, at: "cb3", click: "cb3" },
+  { t: 5.6, at: "share" }, { t: 6.1, at: "share", click: "share" },
+  { t: 7.8, at: [.58, .78] }, { t: T, at: [.62, .86] },
+];
+const SEGS = [{ a: 1.15, b: 4.8 }, { a: 5.4, b: 7.6 }];
+SEGS.forEach(s => {
+  const d = document.createElement("div"); d.className = "seg";
+  d.style.left = (s.a / T * 100) + "%"; d.style.width = ((s.b - s.a) / T * 100) + "%";
+  d.textContent = ZOOM.toFixed(1) + "× zoom"; zoomLane.appendChild(d);
+});
+
+let W = 0, H = 0, P = {};
+function centerOf(el) {
+  let x = el.offsetWidth / 2, y = el.offsetHeight / 2, n = el;
+  while (n && n !== cam) { x += n.offsetLeft; y += n.offsetTop; n = n.offsetParent; }
+  return [x, y];
+}
+function measure() {
+  const saved = cam.style.transform; cam.style.transform = "none";
+  W = cam.offsetWidth; H = cam.offsetHeight;
+  for (const k of ["cb1", "cb2", "cb3", "share"]) P[k] = centerOf(els[k]);
+  cam.style.transform = saved;
+}
+const ease = x => x < .5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
+const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
+const pt = k => typeof k.at === "string" ? P[k.at] : [k.at[0] * W, k.at[1] * H];
+
+function cursorAt(t) {
+  for (let i = 0; i < KEYS.length - 1; i++) {
+    const a = KEYS[i], b = KEYS[i + 1];
+    if (t >= a.t && t <= b.t) {
+      const e = ease((t - a.t) / (b.t - a.t)), p = pt(a), q = pt(b);
+      return [p[0] + (q[0] - p[0]) * e, p[1] + (q[1] - p[1]) * e];
+    }
+  }
+  return pt(KEYS[0]);
+}
+function zoomAt(t) {
+  for (const s of SEGS) {
+    if (t < s.a || t > s.b) continue;
+    return ease(clamp((t - s.a) / .6, 0, 1)) * ease(clamp((s.b - t) / .6, 0, 1));
+  }
+  return 0;
+}
+let focus = null;
+function render(t) {
+  const [cx, cy] = cursorAt(t);
+  cursor.style.transform = `translate(${cx - 3}px, ${cy - 2}px)`;
+  // camera: zoom toward the cursor, never showing past the edges
+  const z = zoomAt(t), s = 1 + (ZOOM - 1) * z;
+  focus = focus ? [focus[0] + (cx - focus[0]) * .12, focus[1] + (cy - focus[1]) * .12] : [cx, cy];
+  const tx = clamp(W / 2 - focus[0] * s, W - W * s, 0), ty = clamp(H / 2 - focus[1] * s, H - H * s, 0);
+  cam.style.transform = `translate(${tx}px, ${ty}px) scale(${s})`;
+  badge.textContent = s.toFixed(1) + "×";
+  // app state from the clicks so far
+  const clicked = id => KEYS.some(k => k.click === id && t >= k.t);
+  ["1", "2", "3"].forEach(n => {
+    const on = clicked("cb" + n);
+    els["cb" + n].classList.toggle("done", on); els["t" + n].classList.toggle("done", on);
+  });
+  els.share.classList.toggle("done", clicked("share"));
+  els.share.textContent = clicked("share") ? "Shared ✓" : "Share";
+  // click ripple
+  const last = KEYS.filter(k => k.click && t >= k.t && t - k.t < .5).pop();
+  if (last) {
+    const p = P[last.click], k = (t - last.t) / .5;
+    ripple.style.left = p[0] + "px"; ripple.style.top = p[1] + "px";
+    ripple.style.opacity = 1 - k; ripple.style.transform = `scale(${.4 + k * 1.2})`;
+  } else ripple.style.opacity = 0;
+  // timeline
+  playhead.style.left = (t / T * 100) + "%";
+  const sec = Math.floor(t), fr = Math.floor((t - sec) * 60);
+  tc.innerHTML = `00:00:${String(sec).padStart(2, "0")}:${String(fr).padStart(2, "0")} <small>/ 00:00:10:00</small>`;
+}
+measure();
+addEventListener("resize", () => { measure(); focus = null; });
+document.fonts?.ready.then(measure);
+const still = matchMedia("(prefers-reduced-motion: reduce)");
+if (still.matches) { focus = null; render(2.95); for (let i = 0; i < 60; i++) render(2.95); }
+else {
+  const t0 = performance.now();
+  (function loop(now) { render(((now - t0) / 1000) % T); requestAnimationFrame(loop); })(t0);
+}
+</script>
+</body>
+</html>

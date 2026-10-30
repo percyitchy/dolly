@@ -669,14 +669,14 @@ describe('logging', () => {
 describe('deployment config', () => {
   const root = new URL('..', import.meta.url)
 
-  it('deploys only the function', () => {
+  it('deploys only the function and the landing page', () => {
     const config = JSON.parse(readFileSync(new URL('vercel.json', root), 'utf8'))
     expect(config.framework).toBeNull()
     expect(config.buildCommand).toBe('')
     expect(config.installCommand).toBe('')
     expect(Object.keys(config.functions)).toEqual(['api/validate.ts'])
     const ignore = readFileSync(new URL('.vercelignore', root), 'utf8').split('\n').filter((line) => line && !line.startsWith('#'))
-    expect(ignore).toEqual(['/*', '!api', '!vercel.json'])
+    expect(ignore).toEqual(['/*', '!api', '!public', '!vercel.json'])
   })
 
   it('has one function in api', () => {

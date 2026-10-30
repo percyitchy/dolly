@@ -3,6 +3,7 @@
   "framework": null,
   "installCommand": "",
   "buildCommand": "",
+  "outputDirectory": "public",
   "functions": {
     "api/validate.ts": { "maxDuration": 15 }
   }

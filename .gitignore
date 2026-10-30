@@ -12,3 +12,4 @@ native/whisper/src/
 native/whisper/models/
 native/ffmpeg/src/
 native/ffmpeg/build/
+.claude/
