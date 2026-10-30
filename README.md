@@ -2,7 +2,7 @@
 
 A screen recorder for macOS and Windows. Stop recording and the video is already polished: a zoom on every click, a smooth cursor, a wallpaper with padding. Edit once, see 16:9, 1:1 and 9:16 side by side, and export the shapes you tick.
 
-Runs on Apple silicon Macs with macOS 13.3 or later, and on 64-bit Windows.
+Runs on Apple silicon Macs with macOS 13.3 or later, and on 64-bit Windows. The Windows version is a beta: it builds and passes its tests in CI, but it hasn't been tried on a real PC yet.
 
 ## Screenshots
 

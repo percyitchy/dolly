@@ -675,6 +675,8 @@ function showStopBar(display: Display): void {
     y: y + STOP_BAR.top,
     width: STOP_BAR.width,
     height: STOP_BAR.height,
+    // Only a panel can sit over another app's full screen space on macOS
+    ...(process.platform === 'darwin' ? { type: 'panel' } : {}),
     frame: false,
     resizable: false,
     minimizable: false,
