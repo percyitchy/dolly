@@ -623,7 +623,7 @@ let context: MainContext | null = null
 let session: Session | null = null
 let starting = false
 let tray: Tray | null = null
-let stopBar: BrowserWindow | null = null
+let stopBars: BrowserWindow[] = []
 let trayOpenedAt: Ms | null = null
 let quitting = false
 let activeRecorder: RecorderWindow | null = null
@@ -658,18 +658,19 @@ export async function cleanUp(steps: (() => unknown)[], last: () => void): Promi
 
 function clearRecordingUi(): void {
   globalShortcut.unregister(SHORTCUT)
-  if (stopBar && !stopBar.isDestroyed()) stopBar.destroy()
-  stopBar = null
+  for (const bar of stopBars) if (!bar.isDestroyed()) bar.destroy()
+  stopBars = []
   tray?.destroy()
   tray = null
   trayOpenedAt = null
 }
 
-// The menu bar icon can sit hidden behind a Mac's notch, so the visible way to stop is this bar. It stays out of the
-// video: the macOS helper leaves Dolly's own windows out, and content protection does the same on Windows
+// The menu bar icon can sit hidden behind a Mac's notch, so the visible way to stop is this bar, on every screen and
+// over every window. It stays out of the video: the macOS helper leaves Dolly's own windows out, and content protection
+// does the same on Windows
 function showStopBar(display: Display): void {
   const { x, y, width } = display.workArea
-  stopBar = new BrowserWindow({
+  const bar = new BrowserWindow({
     x: Math.round(x + (width - STOP_BAR.width) / 2),
     y: y + STOP_BAR.top,
     width: STOP_BAR.width,
@@ -688,15 +689,16 @@ function showStopBar(display: Display): void {
     backgroundColor: '#0E1014',
     webPreferences: secureWebPreferences('stopbar')
   })
-  stopBar.setContentProtection(true)
-  stopBar.setAlwaysOnTop(true, 'screen-saver')
-  stopBar.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true, skipTransformProcessType: true })
-  stopBar.once('ready-to-show', () => stopBar?.showInactive())
-  void stopBar.loadURL(pageUrl('stopbar.html'))
+  bar.setContentProtection(true)
+  bar.setAlwaysOnTop(true, 'screen-saver')
+  bar.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true, skipTransformProcessType: true })
+  bar.once('ready-to-show', () => bar.showInactive())
+  void bar.loadURL(pageUrl('stopbar.html'))
+  stopBars.push(bar)
 }
 
-function showRecordingUi(display: Display): void {
-  showStopBar(display)
+function showRecordingUi(): void {
+  screen.getAllDisplays().forEach(showStopBar)
   globalShortcut.register(SHORTCUT, () => void stopRecording())
   const menu = Menu.buildFromTemplate([
     { label: 'Stop Recording', accelerator: SHORTCUT, registerAccelerator: false, click: () => void stopRecording({ fromTray: true }) }
@@ -787,7 +789,7 @@ async function startRecording(options: RecordingOptions): Promise<void> {
       })
     }
     session = current
-    showRecordingUi(display)
+    showRecordingUi()
     helper.stopped.then(
       () => void stopRecording(),
       (error: Error) => failRecording(current, error)
@@ -945,7 +947,7 @@ export const register: Register = (ctx) => {
   })
   handleFromMain(ctx, 'capture:stop', () => stopRecording())
 
-  const fromStopBar = (sender: WebContents) => !!stopBar && !stopBar.isDestroyed() && sender === stopBar.webContents
+  const fromStopBar = (sender: WebContents) => stopBars.some((bar) => !bar.isDestroyed() && sender === bar.webContents)
   // From the moment the cursor reaches Stop, the rest is the end of the video being left behind
   ipcMain.on(CHANNELS.stopBarHover, (event) => {
     if (fromStopBar(event.sender)) trayOpenedAt = nowMs()
