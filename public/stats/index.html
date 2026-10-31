@@ -152,7 +152,7 @@ function forget() { try { sessionStorage.removeItem(KEY) } catch (e) {} }
 const MESSAGES = {
   wrong_password: "That password isn't right.",
   locked: "Too many tries. Wait 15 minutes.",
-  not_configured: "Connect the database and set ANALYTICS_PASSWORD in Vercel first.",
+  not_configured: "Connect the database in Vercel first.",
   unavailable: "The database isn't answering. Try again."
 }
 
@@ -166,8 +166,9 @@ async function load(password) {
   }
   const body = await response.json().catch(() => ({}))
   if (!response.ok) return fail(body.error)
-  remember(password)
+  if (password) remember(password)
   data = body
+  $("signout").hidden = !body.locked
   $("gate").hidden = true
   $("app").hidden = false
   render()
@@ -177,7 +178,7 @@ function fail(code) {
   forget()
   $("app").hidden = true
   $("gate").hidden = false
-  $("error").textContent = MESSAGES[code] || "Something went wrong."
+  $("error").textContent = code === "wrong_password" && !$("password").value ? "" : MESSAGES[code] || "Something went wrong."
 }
 
 function render() {
@@ -304,9 +305,9 @@ $("login").addEventListener("submit", (e) => {
 document.querySelectorAll("[data-days]").forEach((button) => button.addEventListener("click", () => {
   range = Number(button.dataset.days)
   document.querySelectorAll("[data-days]").forEach((b) => b.setAttribute("aria-pressed", String(b === button)))
-  load(recall())
+  load(recall() ?? "")
 }))
-$("refresh").addEventListener("click", () => load(recall()))
+$("refresh").addEventListener("click", () => load(recall() ?? ""))
 $("signout").addEventListener("click", () => {
   forget()
   $("password").value = ""
@@ -314,7 +315,7 @@ $("signout").addEventListener("click", () => {
   $("gate").hidden = false
 })
 addEventListener("resize", () => { if (data && !$("app").hidden) chart() })
-if (recall()) load(recall())
+load(recall() ?? "")
 </script>
 </body>
 </html>

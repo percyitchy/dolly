@@ -1,4 +1,5 @@
-// POST /api/stats: the numbers behind /stats. Needs ANALYTICS_PASSWORD, and locks an address out after repeated misses.
+// POST /api/stats: the numbers behind /stats. Open to anyone with the link, since they're only totals. Setting
+// ANALYTICS_PASSWORD makes them private, and an address is then locked out after repeated misses.
 
 import { timingSafeEqual } from 'node:crypto'
 import { clientIp, dayOf, json, keys, ONLINE_KEY, ONLINE_WINDOW_MS, redis, redisConfig, sha256, type Command } from './_analytics'
@@ -57,7 +58,7 @@ async function handle(request: Request): Promise<Response> {
   if (request.method !== 'POST') return json(405, { error: 'method_not_allowed' })
   const password = process.env.ANALYTICS_PASSWORD
   const config = redisConfig()
-  if (!password || !config) return json(503, { error: 'not_configured' })
+  if (!config) return json(503, { error: 'not_configured' })
 
   const text = await request.text()
   if (text.length > MAX_BODY_BYTES) return json(413, { error: 'too_large' })
@@ -68,15 +69,18 @@ async function handle(request: Request): Promise<Response> {
     return json(400, { error: 'bad_request' })
   }
   const days = Number(input.days)
-  if (typeof input.password !== 'string' || !RANGES.has(days)) return json(400, { error: 'bad_request' })
+  const given = input.password ?? ''
+  if (typeof given !== 'string' || !RANGES.has(days)) return json(400, { error: 'bad_request' })
 
   try {
     const failKey = `dolly:stats-failures:${sha256(clientIp(request))}`
-    const [failures] = await redis(config, [['GET', failKey]])
-    if (count(failures) >= MAX_FAILURES) return json(429, { error: 'locked' })
-    if (!same(input.password, password)) {
-      await redis(config, [['INCR', failKey], ['EXPIRE', failKey, LOCKOUT_SECONDS]])
-      return json(401, { error: 'wrong_password' })
+    if (password) {
+      const [failures] = await redis(config, [['GET', failKey]])
+      if (count(failures) >= MAX_FAILURES) return json(429, { error: 'locked' })
+      if (!same(given, password)) {
+        await redis(config, [['INCR', failKey], ['EXPIRE', failKey, LOCKOUT_SECONDS]])
+        return json(401, { error: 'wrong_password' })
+      }
     }
 
     const now = Date.now()
@@ -104,7 +108,8 @@ async function handle(request: Request): Promise<Response> {
         conversion: visitors ? sum('downloaders') / visitors : 0
       },
       online: count(replies.at(-1)),
-      github
+      github,
+      locked: !!password
     })
   } catch {
     return json(503, { error: 'unavailable' })

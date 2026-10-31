@@ -165,8 +165,15 @@ describe('/api/stats', () => {
     expect((await statsRequest(5)).status).toBe(400)
   })
 
-  it('says so when it is not set up', async () => {
+  it('is open to anyone when no password is set', async () => {
     vi.stubEnv('ANALYTICS_PASSWORD', '')
+    const response = await stats.fetch(new Request('https://getdolly.vercel.app/api/stats', { method: 'POST', body: JSON.stringify({ days: 7 }) }))
+    expect(response.status).toBe(200)
+    expect((await response.json()).locked).toBe(false)
+  })
+
+  it('says so when there is no database', async () => {
+    vi.stubEnv('KV_REST_API_URL', '')
     expect((await statsRequest()).status).toBe(503)
   })
 })
