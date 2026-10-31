@@ -674,12 +674,13 @@ describe('deployment config', () => {
     expect(config.framework).toBeNull()
     expect(config.buildCommand).toBe('')
     expect(config.installCommand).toBe('')
-    expect(Object.keys(config.functions)).toEqual(['api/validate.ts'])
+    expect(Object.keys(config.functions).sort()).toEqual(['api/stats.ts', 'api/track.ts', 'api/validate.ts'])
     const ignore = readFileSync(new URL('.vercelignore', root), 'utf8').split('\n').filter((line) => line && !line.startsWith('#'))
     expect(ignore).toEqual(['/*', '!api', '!public', '!vercel.json'])
   })
 
-  it('has one function in api', () => {
-    expect(readdirSync(new URL('api/', root)).filter((file) => file !== '.DS_Store')).toEqual(['validate.ts'])
+  it('has only the three functions in api', () => {
+    const functions = readdirSync(new URL('api/', root)).filter((file) => !file.startsWith('.') && !file.startsWith('_'))
+    expect(functions.sort()).toEqual(['stats.ts', 'track.ts', 'validate.ts'])
   })
 })

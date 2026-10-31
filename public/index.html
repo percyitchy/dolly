@@ -750,6 +750,7 @@ footer .right { margin-left: auto; display: flex; gap: 20px; }
       <div class="faq rv">
         <details open><summary>Is it really free?</summary><p>Yes. Recording, auto-zoom, smooth cursor and 1080p export are free forever, and the code is MIT licensed. Pro is a one-time $9.99 for 4K, 60 fps, captions, webcam, GIF export and the vertical cut.</p></details>
         <details><summary>How do I activate Pro?</summary><p>After you pay you get a license key on Whop. Paste it in Settings once, and Pro keeps working offline. One key works on up to 3 devices.</p></details>
+        <details><summary>Does anything track me?</summary><p>The Dolly app has no analytics and only goes online to check a Pro license. This website counts visits and downloads without cookies or stored IP addresses.</p></details>
         <details><summary>Which permissions does it need?</summary><p>On a Mac you allow Screen Recording, Input Monitoring, the microphone and the camera once in System Settings. macOS's wording mentions keystrokes, but Dolly only asks for mouse events, so it never sees what you type. On Windows you only allow the microphone and camera.</p></details>
         <details><summary>Why does my computer warn me when I open it?</summary><p>The builds aren't signed yet. The README shows the one extra step on Mac and Windows. Until they're signed, macOS may ask for permissions again after an update.</p></details>
         <details><summary>Can I edit the zooms?</summary><p>Every zoom is a block on the timeline. Drag it, stretch it, change the zoom level or delete it.</p></details>
@@ -1250,6 +1251,20 @@ if (!still) {
 }
 root.classList.add("ready");
 })();
+</script>
+<script>
+// Counts visits and downloads with no cookies and no stored IP address. The app itself sends nothing
+(function () {
+  function send(event) {
+    try { navigator.sendBeacon("/api/track", new Blob([JSON.stringify(event)], { type: "application/json" })) } catch (e) {}
+  }
+  send({ type: "view" })
+  document.addEventListener("click", function (e) {
+    var link = e.target.closest && e.target.closest("a[href]")
+    var file = link && /\.(dmg|exe)$/.exec(link.href)
+    if (file) send({ type: "download", os: file[1] === "dmg" ? "mac" : "windows" })
+  })
+})()
 </script>
 </body>
 </html>

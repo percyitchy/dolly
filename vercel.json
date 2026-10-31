@@ -5,6 +5,8 @@
   "buildCommand": "",
   "outputDirectory": "public",
   "functions": {
-    "api/validate.ts": { "maxDuration": 15 }
+    "api/validate.ts": { "maxDuration": 15 },
+    "api/track.ts": { "maxDuration": 5 },
+    "api/stats.ts": { "maxDuration": 10 }
   }
 }
